@@ -1,0 +1,42 @@
+<RCC>
+    <qresource prefix="/gemN">
+        <file>data/gem/gem01.png</file>
+        <file>data/gem/gem02.png</file>
+        <file>data/gem/gem03.png</file>
+        <file>data/gem/gem04.png</file>
+        <file>data/gem/gem05.png</file>
+        <file>data/gem/gem06.png</file>
+    </qresource>
+    <qresource prefix="/gemB">
+        <file>data/gem/gem21.png</file>
+        <file>data/gem/gem22.png</file>
+        <file>data/gem/gem23.png</file>
+        <file>data/gem/gem24.png</file>
+        <file>data/gem/gem25.png</file>
+        <file>data/gem/gem26.png</file>
+    </qresource>
+    <qresource prefix="/gemW">
+        <file>data/gem/gem11.png</file>
+        <file>data/gem/gem12.png</file>
+        <file>data/gem/gem13.png</file>
+        <file>data/gem/gem14.png</file>
+        <file>data/gem/gem15.png</file>
+        <file>data/gem/gem16.png</file>
+    </qresource>
+    <qresource prefix="/enemy">
+        <file>data/enemy/180n.png</file>
+        <file>data/enemy/267n.png</file>
+        <file>data/enemy/slime_d.png</file>
+        <file>data/enemy/slime_e.png</file>
+        <file>data/enemy/slime_f.png</file>
+        <file>data/enemy/slime_l.png</file>
+        <file>data/enemy/slime_w.png</file>
+    </qresource>
+    <qresource prefix="/hero">
+        <file>data/hero/ID1.png</file>
+        <file>data/hero/ID2.png</file>
+        <file>data/hero/ID3.png</file>
+        <file>data/hero/ID4.png</file>
+        <file>data/hero/ID5.png</file>
+    </qresource>
+</RCC>

@@ -3,6 +3,7 @@
 #include <QVector>
 #include "Hero.h"
 #include "Enemy.h"
+#include "Player.h"
 class QPushButton;
 class QLabel;
 class QHBoxLayout;
@@ -17,6 +18,11 @@ public:
     void initWaves(int mission);
     void showWave(int wave_idx);
     void nextWave();
+    void mousePressEvent(QMouseEvent *event);
+    Player* getPlayer() const { return player; }
+    QVector<Enemy*> getCurrentEnemies() const { return enemies; }
+    void checkAllEnemiesDefeated();
+
 
 signals:
     void pauseGame();
@@ -35,7 +41,12 @@ private:
     QHBoxLayout* heroLayout;
     QWidget* heroAreaWidget;
 
+    // player
+    Player* player;
+
     // waves
     QVector<QVector<Enemy*>> waves;
     int currentWave;
+    QVector<Enemy*> enemies;
+
 };

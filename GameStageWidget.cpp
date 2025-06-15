@@ -4,7 +4,9 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
+#include <QMouseEvent>
 #include "Enemy.h"
+#include "Player.h"
 
 GameStageWidget::GameStageWidget(QWidget *parent)
     : QWidget(parent)
@@ -49,6 +51,7 @@ GameStageWidget::GameStageWidget(QWidget *parent)
     connect(winButton, &QPushButton::clicked, this, &GameStageWidget::wavePass);
     QPushButton *failButton = new QPushButton("Fail", this);
     connect(failButton, &QPushButton::clicked, this, &GameStageWidget::gameFail);
+
     winButton->setFixedSize(150, 30);
     failButton->setFixedSize(100, 30);
     simulateLayout->addWidget(winButton);
@@ -64,7 +67,15 @@ GameStageWidget::GameStageWidget(QWidget *parent)
     heroLayout->setSpacing(10);
     mainLayout->addWidget(heroAreaWidget, 0, Qt::AlignHCenter);
 
-    mainLayout->addWidget(createSection("HP/Timer Area", 40));
+    QProgressBar* hpBar = new QProgressBar(this);
+    hpBar->setFixedSize(530, 40);
+    hpBar->setTextVisible(true);
+    mainLayout->addWidget(hpBar, 0, Qt::AlignHCenter);
+
+    // 綁定 player 與初始化
+    player = new Player(this);
+    player->bindHpBar(hpBar);
+    player->reset();
 
     mainLayout->addWidget(createSection("Gem Area", 450));
 
@@ -106,28 +117,10 @@ void GameStageWidget::setup(const QVector<Hero*>& heroes, int mission)
 void GameStageWidget::initWaves(int mission)
 {
     waves.clear();
-
     if (mission == 1) {
-        using SM = Enemy::SpecialMechanism;
-
-        // Wave 1
-        waves.append({
-            new Enemy(1, "Water", 100, 200, 3, ":/enemy/data/enemy/slime_w.png", SM::None),
-            new Enemy(2, "Fire", 100, 200, 3, ":/enemy/data/enemy/slime_f.png", SM::None),
-            new Enemy(3, "Earth", 100, 200, 3, ":/enemy/data/enemy/slime_e.png", SM::None)
-        });
-
-        // Wave 2
-        waves.append({
-            new Enemy(4, "Light", 100, 200, 3, ":/enemy/data/enemy/slime_l.png", SM::None),
-            new Enemy(5, "Earth", 300, 200, 3, ":/enemy/data/enemy/267n.png", SM::WeatheredRunestone),
-            new Enemy(6, "Dark", 100, 200, 3, ":/enemy/data/enemy/slime_d.png", SM::None)
-        });
-
-        // Wave 3
-        waves.append({
-            new Enemy(7, "Fire", 700, 400, 5, ":/enemy/data/enemy/180n.png", SM::BurningBoard)
-        });
+        for (int i = 1; i <= 3; ++i) {
+            waves.append(Enemy::createWave(i));
+        }
     }
 }
 
@@ -141,11 +134,11 @@ void GameStageWidget::showWave(int wave_idx)
         delete child->widget();
         delete child;
     }
-
+    enemies = waves[wave_idx];
     // 將此 wave 的敵人逐一顯示
     for (Enemy* enemy : waves[wave_idx]) {
         QWidget* enemyWidget = enemy->createEnemyWidget(this);
-        enemyLayout->addWidget(enemyWidget);
+        enemyLayout->addWidget(enemyWidget, 0, Qt::AlignVCenter);
     }
 }
 
@@ -159,3 +152,22 @@ void GameStageWidget::nextWave()
     }
 }
 
+void GameStageWidget::mousePressEvent(QMouseEvent *event)
+{
+    // 若目前未啟動倒數才啟動
+    if (player) {
+        player->startMoveTimer();  // 內部會檢查 timer 是否正在跑
+    }
+
+    // 可選：如果你有 gem 拖曳，可以把 event 傳給 GemArea 處理
+    // QWidget::mousePressEvent(event); // 若要保留 Qt 默認行為
+}
+
+void GameStageWidget::checkAllEnemiesDefeated()
+{
+    for (Enemy* e : enemies) {
+        if (e->currentHp > 0) return;  // 還有活著的敵人，直接退出
+    }
+
+    emit wavePass();  // 全部敵人死亡，自動進入下一 wave
+}

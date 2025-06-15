@@ -14,6 +14,7 @@ SOURCES += \
     GameStageWidget.cpp \
     Hero.cpp \
     PauseStageWidget.cpp \
+    Player.cpp \
     PrepareStageWidget.cpp \
     main.cpp \
     MainWindow.cpp
@@ -25,6 +26,7 @@ HEADERS += \
     Hero.h \
     MainWindow.h \
     PauseStageWidget.h \
+    Player.h \
     PrepareStageWidget.h
 
 FORMS += \

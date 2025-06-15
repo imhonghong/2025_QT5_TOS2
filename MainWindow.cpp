@@ -71,6 +71,21 @@ MainWindow::MainWindow(QWidget *parent)
     connect(gameStage, &GameStageWidget::wavePass, this, [=]() {
         gameStage->nextWave();
     });
+
+    connect(gameStage->getPlayer(), &Player::moveTimeUp, this, [=]() {
+        // 玩家 combo 攻擊（未實作）
+
+        gameStage->checkAllEnemiesDefeated();
+        // ✅ 改呼叫 player 處理敵人行動
+        Player* p = gameStage->getPlayer();
+        QVector<Enemy*> enemies = gameStage->getCurrentEnemies();
+        p->processEnemyTurn(enemies);
+
+        if (p->isDead()) {
+            switchToFinishStage(false);
+        }
+
+    });
 }
 
 void MainWindow::switchToPrepareStage() {

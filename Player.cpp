@@ -1,6 +1,7 @@
 #include "Player.h"
 #include <QDebug>
 #include "Enemy.h"
+#include <QRandomGenerator>
 
 Player::Player(QObject *parent)
     : QObject(parent),
@@ -127,6 +128,7 @@ const QVector<Hero*>& Player::getHeroTeam() const
 
 void Player::processEnemyTurn(const QVector<Enemy*>& enemies)
 {
+
     for (Enemy* e : enemies) {
         e->cd--;
         if (e->cd <= 0) {
@@ -136,4 +138,112 @@ void Player::processEnemyTurn(const QVector<Enemy*>& enemies)
         e->updateCdLabel();
         qDebug() << "[Player] enemy" << e->id << "CD now:" << e->cd;
     }
+}
+
+void Player::attackAllEnemies(QVector<Enemy*>& enemies,
+                               int combo,
+                               const QMap<QString, int>& ncarPerAttr)
+{
+    qDebug() << "[Player] attackAllEnemies called. Combo =" << combo;
+    qDebug() << "[Player] Hero count =" << heroes.size();
+
+    // 1. AC 表
+    QMap<QString, QMap<QString, double>> acTable;
+    QStringList attrs = {"Water", "Fire", "Earth", "Light", "Dark"};
+
+    for (const QString& atk : attrs) {
+        for (const QString& def : attrs) {
+            double ac = 1.0;
+            if (atk == "Water" && def == "Fire") ac = 2.0;
+            else if (atk == "Fire" && def == "Earth") ac = 2.0;
+            else if (atk == "Earth" && def == "Water") ac = 2.0;
+            else if (atk == "Light" && def == "Dark") ac = 2.0;
+            else if (atk == "Dark" && def == "Light") ac = 2.0;
+
+            if (def == "Water" && atk == "Earth") ac = 0.5;
+            else if (def == "Fire" && atk == "Water") ac = 0.5;
+            else if (def == "Earth" && atk == "Fire") ac = 0.5;
+            else if (def == "Light" && atk == "Dark") ac = 0.5;
+            else if (def == "Dark" && atk == "Light") ac = 0.5;
+
+            acTable[atk][def] = ac;
+        }
+    }
+
+    // 2. 屬性總傷害
+    QMap<QString, double> totalDamage;
+    for (const QString& attr : attrs) {
+        int ncar = ncarPerAttr.value(attr, 0);
+        totalDamage[attr] = combo * ncar;
+        qDebug() << "[DmgCalc] attr:" << attr
+                 << "| NCAR =" << ncar
+                 << "| base dmg =" << totalDamage[attr];
+    }
+
+    // 3. 活著的敵人
+    QVector<Enemy*> aliveEnemies;
+    for (Enemy* e : enemies) {
+        if (e && e->currentHp > 0) {
+            aliveEnemies.append(e);
+        }
+    }
+
+    // 4. 每隻 Hero 出手一次
+    for (Hero* h : heroes) {
+        if (!h) continue;
+
+        QString attr = h->attr;
+        double damage = totalDamage.value(attr, 0);
+        qDebug() << "[Hero] ID:" << h->id
+                 << "| Attr:" << attr
+                 << "| ATK:" << h->atk
+                 << "| totalDamage =" << damage;
+
+        if (damage <= 0) continue;
+
+        // 找一隻還活著的敵人
+        QVector<Enemy*> candidates;
+        for (Enemy* e : aliveEnemies) {
+            if (e->currentHp > 0)
+                candidates.append(e);
+        }
+
+        if (candidates.isEmpty()) return;
+
+        int idx = QRandomGenerator::global()->bounded(candidates.size());
+        Enemy* target = candidates[idx];
+
+        double ac = acTable[attr].value(target->attr, 1.0);
+        int finalDmg = static_cast<int>(damage * ac + 0.5);
+
+        qDebug() << " -> Attacking enemy ID:" << target->id
+                 << "(Attr:" << target->attr
+                 << "| HP before:" << target->currentHp
+                 << ") AC =" << ac
+                 << "| Final Damage =" << finalDmg;
+
+        target->takeDamage(finalDmg);
+
+        qDebug() << "    >> Enemy ID:" << target->id
+                 << "| HP after:" << target->currentHp
+                 << (target->currentHp <= 0 ? "(DEFEATED)" : "");
+    }
+}
+
+void Player::recoverHp(int combo, int nHeart)
+{
+    if (combo <= 0 || nHeart <= 0) return;
+
+    int recovery = combo * nHeart * 5;
+    int before = currentHp;
+    currentHp += recovery;
+
+    if (currentHp > maxHp) currentHp = maxHp;
+
+    updateHpBar();
+    emit hpChanged(currentHp, maxHp);
+    qDebug() << "[Recover] Combo:" << combo
+                 << "| Hearts:" << nHeart
+                 << "| Recovery:" << recovery
+                 << "| HP:" << before << "->" << currentHp;
 }

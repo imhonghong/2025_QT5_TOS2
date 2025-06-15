@@ -21,7 +21,8 @@ public:
     void mousePressEvent(QMouseEvent *event);
     Player* getPlayer() const { return player; }
     QVector<Enemy*> getCurrentEnemies() const { return enemies; }
-    void checkAllEnemiesDefeated();
+    //void checkAllEnemiesDefeated();
+    bool checkAllEnemiesDefeated(bool emitIfPassed = true);
 
 
 signals:

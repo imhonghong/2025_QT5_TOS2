@@ -3,6 +3,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QDebug>
 #include <QPushButton>
 #include <QMouseEvent>
 #include "Enemy.h"
@@ -111,7 +112,7 @@ void GameStageWidget::setup(const QVector<Hero*>& heroes, int mission)
     initWaves(mission);
     currentWave = 0;
     showWave(currentWave);
-
+    player->setHeroTeam(heroes);
 }
 
 void GameStageWidget::initWaves(int mission)
@@ -163,11 +164,15 @@ void GameStageWidget::mousePressEvent(QMouseEvent *event)
     // QWidget::mousePressEvent(event); // 若要保留 Qt 默認行為
 }
 
-void GameStageWidget::checkAllEnemiesDefeated()
+bool GameStageWidget::checkAllEnemiesDefeated(bool emitIfPassed)
 {
-    for (Enemy* e : enemies) {
-        if (e->currentHp > 0) return;  // 還有活著的敵人，直接退出
-    }
 
-    emit wavePass();  // 全部敵人死亡，自動進入下一 wave
+    for (Enemy* e : enemies) {
+            if (e && e->currentHp > 0) return false;  // ❗ 要加上 e != nullptr 檢查
+    }
+    qDebug() << "[GameStage] All enemies defeated. Emitting wavePass";
+    if (emitIfPassed)
+        emit wavePass();
+
+    return true;
 }

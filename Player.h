@@ -18,7 +18,6 @@ public:
     void updateHpBar();
     void takeDamage(int dmg);
     bool isDead() const;
-
     void showAsHp();
     void showAsTimer();
     void startMoveTimer();
@@ -28,6 +27,11 @@ public:
     const QVector<Hero*>& getHeroTeam() const;
 
     void processEnemyTurn(const QVector<Enemy*>& enemies);
+
+    void attackAllEnemies(QVector<Enemy*>& enemies,
+                          int combo,
+                          const QMap<QString, int>& ncarPerAttr);
+    void recoverHp(int combo, int nHeart);
 
 signals:
     void moveTimeUp();                      // 倒數結束

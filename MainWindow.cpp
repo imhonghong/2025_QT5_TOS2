@@ -47,14 +47,30 @@ MainWindow::MainWindow(QWidget *parent)
         switchToFinishStage(false);  // false = lose
     });
 
+    // ✅ finish → restart
     connect(finishStage, &FinishStageWidget::restartGame, this, [=]() {
         switchToPrepareStage();
     });
 
+    // ✅ finish → exit
     connect(finishStage, &FinishStageWidget::exitGame, this, [=]() {
         QApplication::quit();
     });
 
+    // ✅ Game → finish (win)
+    connect(gameStage, &GameStageWidget::gamePass, this, [=]() {
+        switchToFinishStage(true);  // true = Win!
+    });
+
+    // ✅ Game → finish (lose)
+    connect(gameStage, &GameStageWidget::gameFail, this, [=]() {
+        switchToFinishStage(false);
+    });
+
+    // ✅ Game → Game (next wave)
+    connect(gameStage, &GameStageWidget::wavePass, this, [=]() {
+        gameStage->nextWave();
+    });
 }
 
 void MainWindow::switchToPrepareStage() {

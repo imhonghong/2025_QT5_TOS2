@@ -8,7 +8,7 @@
 #include <QIcon>
 #include <QPixmap>
 #include <QVariant>
-
+#include <QMessageBox>
 PrepareStageWidget::PrepareStageWidget(QWidget *parent)
     : QWidget(parent)
 {
@@ -80,6 +80,7 @@ PrepareStageWidget::PrepareStageWidget(QWidget *parent)
     mainLayout->addWidget(startBtn, 0, Qt::AlignHCenter);
 
     mainLayout->addSpacing(20);
+
 
     connect(startBtn, &QPushButton::clicked, this, &PrepareStageWidget::startGame);
 }

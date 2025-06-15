@@ -3,6 +3,7 @@
 #include <QVBoxLayout>
 #include <QPushButton>
 #include <QLabel>
+#include <QDebug>
 
 PauseStageWidget::PauseStageWidget(QWidget *parent)
     : QWidget(parent)

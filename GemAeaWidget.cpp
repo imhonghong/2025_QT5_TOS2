@@ -15,16 +15,38 @@ GemAreaWidget::GemAreaWidget(QWidget* parent)
 
 void GemAreaWidget::initializeBoard()
 {
+    QVector<QString> allAttrs = {"Water", "Fire", "Earth", "Light", "Dark", "Heart"};
+
     for (int row = 0; row < ROWS; ++row) {
         for (int col = 0; col < COLS; ++col) {
-            Gem* gem = new Gem(this);
-            gem->randomize();
+
+            QVector<QString> candidates = allAttrs;
+
+            if (col >= 2) {
+                Gem* left1 = gemGrid[row][col - 1];
+                Gem* left2 = gemGrid[row][col - 2];
+                if (left1 && left2 && left1->getAttr() == left2->getAttr()) {
+                    candidates.removeAll(left1->getAttr());
+                }
+            }
+            if (row >= 2) {
+                Gem* up1 = gemGrid[row - 1][col];
+                Gem* up2 = gemGrid[row - 2][col];
+                if (up1 && up2 && up1->getAttr() == up2->getAttr()) {
+                    candidates.removeAll(up1->getAttr());
+                }
+            }
+
+            // 從合法屬性中選擇一個
+            QString attr = candidates[QRandomGenerator::global()->bounded(candidates.size())];
+
+            // 建立 Gem
+            Gem* gem = new Gem(attr, "Normal", this);
             gemGrid[row][col] = gem;
             gridLayout->addWidget(gem, row, col);
         }
     }
 }
-
 void GemAreaWidget::resetBoard()
 {
     for (int row = 0; row < ROWS; ++row) {

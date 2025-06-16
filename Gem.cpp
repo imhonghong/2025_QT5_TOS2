@@ -9,6 +9,13 @@ Gem::Gem(QWidget* parent)
     setScaledContents(true);  // 讓圖片填滿
     updateIcon();
 }
+Gem::Gem(QString attr, QString state, QWidget* parent)
+    : QLabel(parent), attr(attr), state(state)
+{
+    updateIcon();
+    setFixedSize(90, 90);
+    setAlignment(Qt::AlignCenter);
+}
 
 void Gem::setAttr(const QString& a)
 {

@@ -10,6 +10,7 @@ class Gem : public QLabel
 
 public:
     explicit Gem(QWidget* parent = nullptr);
+    explicit Gem(QString attr, QString state, QWidget* parent = nullptr);
 
     void setAttr(const QString& attr);     // e.g., "Fire", "Water"
     void setState(const QString& state);   // e.g., "Normal", "Burning", "Weathered"

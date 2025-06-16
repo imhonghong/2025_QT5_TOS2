@@ -69,6 +69,22 @@ void GemAreaWidget::mouseMoveEvent(QMouseEvent* event)
     if (!gridLayout->itemAtPosition(currentIndex.x(), currentIndex.y())) return;
     // if (passedCells.contains(currentIndex)) return;
 
+    Gem* currentGem = gemGrid[currentIndex.x()][currentIndex.y()];
+    if (!currentGem) return;
+
+    // ✅ 檢查是否為風化珠
+    if (currentGem->getState() == "Weathered") {
+        currentGem->setState("Normal");
+
+        if (player) {
+            player->takeDamage(100);
+        }
+
+        forceStopDragging();
+        emit dragFinished();
+        return;
+    }
+
     QPoint last = passedCells.last();
     if (areAdjacent(currentIndex, last)) {
         swapGems(last, currentIndex);
@@ -123,4 +139,34 @@ void GemAreaWidget::forceStopDragging()
     releaseMouse();
 
     qDebug() << "[GemArea] Force stopped dragging due to timeout.";
+}
+
+void GemAreaWidget::setPlayer(Player* p)
+{
+    player = p;
+}
+
+void GemAreaWidget::randomSetWeathered(int count)
+{
+    QVector<Gem*> normalGems;
+
+    for (int r = 0; r < ROWS; ++r) {
+        for (int c = 0; c < COLS; ++c) {
+            Gem* g = gemGrid[r][c];
+            if (g && g->getState() == "Normal") {
+                normalGems.append(g);
+            }
+        }
+    }
+
+    if (normalGems.size() < count) count = normalGems.size();
+
+    for (int i = 0; i < count; ++i) {
+        int idx = QRandomGenerator::global()->bounded(normalGems.size());
+        Gem* g = normalGems[idx];
+        g->setState("Weathered");
+        normalGems.removeAt(idx);
+    }
+
+    qDebug() << "[GemArea] Set" << count << "weathered runestones";
 }

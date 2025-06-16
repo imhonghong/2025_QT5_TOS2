@@ -131,6 +131,9 @@ void Player::processEnemyTurn(const QVector<Enemy*>& enemies)
 {
 
     for (Enemy* e : enemies) {
+        if (e) {
+                e->applySkill_ID5(gemArea);  // 每隻敵人每回合都可施放技能
+            }
         e->cd--;
         if (e->cd <= 0) {
             takeDamage(e->atk);
@@ -247,4 +250,9 @@ void Player::recoverHp(int combo, int nHeart)
                  << "| Hearts:" << nHeart
                  << "| Recovery:" << recovery
                  << "| HP:" << before << "->" << currentHp;
+}
+
+void Player::setGemArea(GemAreaWidget* g)
+{
+    gemArea = g;
 }

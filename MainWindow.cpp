@@ -87,7 +87,7 @@ MainWindow::MainWindow(QWidget *parent)
             {"Earth", 5},
             {"Light", 6},
             {"Dark", 3},
-            {"Heart", 3}
+            {"Heart", 5}
         };
         p->attackAllEnemies(enemies, combo, ncarMap);
         p->recoverHp(combo, ncarMap.value("Heart", 0));

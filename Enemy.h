@@ -2,7 +2,9 @@
 #include "Hero.h"
 #include <QWidget>
 #include <QLabel>
+
 class QProgressBar;
+class GemAreaWidget;  // forward declaration
 
 class Enemy : public Hero {
 public:
@@ -23,6 +25,8 @@ public:
 
     QProgressBar* hpBar = nullptr;  // 可選：讓 Enemy 控制自己的 UI 血條
     QLabel* cdLabel = nullptr;
+
+    void applySkill_ID5(GemAreaWidget* gemArea);  // ID=5 weather stone
 
     static QVector<Enemy*> createWave(int waveID);
     QWidget* createEnemyWidget(QWidget *parent = nullptr);

@@ -6,6 +6,7 @@
 #include "Hero.h"
 
 class Enemy;
+class GemAreaWidget;
 
 class Player : public QObject {
     Q_OBJECT
@@ -33,6 +34,9 @@ public:
                           const QMap<QString, int>& ncarPerAttr);
     void recoverHp(int combo, int nHeart);
 
+    void setGemArea(GemAreaWidget* g);  // ✅ 傳入外部盤面
+
+
 signals:
     void moveTimeUp();                      // 倒數結束
     void hpChanged(int current, int max);  // 血量改變
@@ -50,4 +54,6 @@ private:
     int moveTime;
     bool hasStartedMove = false; //只轉珠一次的防呆
     double currentTimeValue = 10.0;
+
+    GemAreaWidget* gemArea = nullptr;
 };

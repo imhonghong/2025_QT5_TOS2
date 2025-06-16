@@ -1,8 +1,11 @@
 #include "Enemy.h"
+#include "GemAreaWidget.h"
+
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QProgressBar>
 #include <QPixmap>
+#include <QDebug>
 
 Enemy::Enemy(int id, const QString &attr, int hp, int atk, int cd, const QString &iconPath,
              SpecialMechanism sp)
@@ -94,5 +97,13 @@ void Enemy::updateCdLabel()
 {
     if (cdLabel) {
         cdLabel->setText(QString("CD: %1").arg(cd));
+    }
+}
+
+void Enemy::applySkill_ID5(GemAreaWidget* gemArea)
+{
+    if (id == 5 && currentHp > 0 && gemArea) {
+        gemArea->randomSetWeathered(2);
+        qDebug() << "[Enemy] ID 5 skill: Set 2 gems to Weathered";
     }
 }

@@ -4,6 +4,8 @@
 #include <QGridLayout>
 #include <QPoint>
 #include "Gem.h"
+#include "Player.h"
+
 
 class GemAreaWidget : public QWidget
 {
@@ -16,6 +18,10 @@ public:
     void resetBoard();
     QMap<QString, int> getNcarMap() const;
     int getComboCount() const;
+
+    void setPlayer(Player* p);
+    void randomSetWeathered(int count);
+
 
 signals:
     void dragStarted(); // 發出訊號給 player
@@ -42,4 +48,6 @@ private:
     QPoint getCellFromPosition(int x, int y) const;
     bool areAdjacent(QPoint a, QPoint b) const;
     void swapGems(QPoint a, QPoint b);
+
+    Player* player = nullptr;
 };

@@ -74,6 +74,7 @@ GameStageWidget::GameStageWidget(QWidget *parent)
     gemArea = new GemAreaWidget(this);
     gemArea->setFixedSize(540, 450);
     mainLayout->addWidget(gemArea);
+    gemArea->setPlayer(player);
 
     // 轉珠計時連接
     connect(gemArea, &GemAreaWidget::dragStarted, this, [=]() {
@@ -122,6 +123,7 @@ void GameStageWidget::setup(const QVector<Hero*>& heroes, int mission)
     currentWave = 0;
     showWave(currentWave);
     player->setHeroTeam(heroes);
+    player->setGemArea(gemArea);
 }
 
 void GameStageWidget::initWaves(int mission)
@@ -147,6 +149,11 @@ void GameStageWidget::showWave(int wave_idx)
     enemies = waves[wave_idx];
     // 將此 wave 的敵人逐一顯示
     for (Enemy* enemy : waves[wave_idx]) {
+
+        if (enemy && enemy->id == 5) {
+            enemy->applySkill_ID5(gemArea);
+        }
+
         QWidget* enemyWidget = enemy->createEnemyWidget(this);
         enemyLayout->addWidget(enemyWidget, 0, Qt::AlignVCenter);
     }

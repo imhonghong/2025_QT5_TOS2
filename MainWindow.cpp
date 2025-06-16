@@ -3,6 +3,7 @@
 #include "GameStageWidget.h"
 #include "PauseStageWidget.h"
 #include "FinishStageWidget.h"
+#include "GemAreaWidget.h"
 #include <QApplication>
 #include <QDebug>
 

@@ -12,6 +12,8 @@ SOURCES += \
     Enemy.cpp \
     FinishStageWidget.cpp \
     GameStageWidget.cpp \
+    Gem.cpp \
+    GemAeaWidget.cpp \
     Hero.cpp \
     PauseStageWidget.cpp \
     Player.cpp \
@@ -23,6 +25,8 @@ HEADERS += \
     Enemy.h \
     FinishStageWidget.h \
     GameStageWidget.h \
+    Gem.h \
+    GemAreaWidget.h \
     Hero.h \
     MainWindow.h \
     PauseStageWidget.h \

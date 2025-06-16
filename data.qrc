@@ -1,21 +1,17 @@
 <RCC>
-    <qresource prefix="/gemN">
-        <file>data/gem/gem01.png</file>
-        <file>data/gem/gem02.png</file>
-        <file>data/gem/gem03.png</file>
-        <file>data/gem/gem04.png</file>
-        <file>data/gem/gem05.png</file>
-        <file>data/gem/gem06.png</file>
-    </qresource>
-    <qresource prefix="/gemB">
+    <qresource prefix="/gem">
         <file>data/gem/gem21.png</file>
         <file>data/gem/gem22.png</file>
         <file>data/gem/gem23.png</file>
         <file>data/gem/gem24.png</file>
         <file>data/gem/gem25.png</file>
         <file>data/gem/gem26.png</file>
-    </qresource>
-    <qresource prefix="/gemW">
+        <file>data/gem/gem01.png</file>
+        <file>data/gem/gem02.png</file>
+        <file>data/gem/gem03.png</file>
+        <file>data/gem/gem04.png</file>
+        <file>data/gem/gem05.png</file>
+        <file>data/gem/gem06.png</file>
         <file>data/gem/gem11.png</file>
         <file>data/gem/gem12.png</file>
         <file>data/gem/gem13.png</file>

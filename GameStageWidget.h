@@ -4,6 +4,7 @@
 #include "Hero.h"
 #include "Enemy.h"
 #include "Player.h"
+#include "GemAreaWidget.h"
 class QPushButton;
 class QLabel;
 class QHBoxLayout;
@@ -18,10 +19,10 @@ public:
     void initWaves(int mission);
     void showWave(int wave_idx);
     void nextWave();
-    void mousePressEvent(QMouseEvent *event);
-    Player* getPlayer() const { return player; }
-    QVector<Enemy*> getCurrentEnemies() const { return enemies; }
-    //void checkAllEnemiesDefeated();
+    Player* getPlayer() const { return player; };
+    QVector<Enemy*> getCurrentEnemies() const { return enemies; };
+    GemAreaWidget* getGemArea() const{ return gemArea; };
+
     bool checkAllEnemiesDefeated(bool emitIfPassed = true);
 
 
@@ -44,6 +45,9 @@ private:
 
     // player
     Player* player;
+
+    // gem
+    GemAreaWidget* gemArea;
 
     // waves
     QVector<QVector<Enemy*>> waves;

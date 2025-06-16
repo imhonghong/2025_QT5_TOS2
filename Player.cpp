@@ -97,6 +97,7 @@ void Player::showAsTimer()
 void Player::stopMoveTimer()
 {
     moveTimer->stop();
+    emit moveTimeUp();  // 🔔 倒數結束，發出通知
     showAsHp();
 }
 

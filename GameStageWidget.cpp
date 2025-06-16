@@ -16,17 +16,9 @@ GameStageWidget::GameStageWidget(QWidget *parent)
     mainLayout->setSpacing(0);
     mainLayout->setMargin(0);
 
-    auto createSection = [](const QString& text, int height) -> QWidget* {
-           QLabel* section = new QLabel(text);
-           section->setFixedSize(540, height);
-           section->setAlignment(Qt::AlignCenter);
-           section->setStyleSheet("border: 1px solid gray; font-size: 18px;");
-           return section;
-       };
-
     enemyAreaWidget = new QWidget(this);
-    enemyAreaWidget->setFixedSize(540, 380);
-    enemyAreaWidget->setStyleSheet("border: 1px solid gray;");
+    enemyAreaWidget->setFixedSize(540, 350);
+    // enemyAreaWidget->setStyleSheet("border: 1px solid gray;");
     enemyLayout = new QHBoxLayout(enemyAreaWidget);
     enemyLayout->setSpacing(10);
     enemyLayout->setContentsMargins(10, 10, 10, 10);
@@ -78,7 +70,24 @@ GameStageWidget::GameStageWidget(QWidget *parent)
     player->bindHpBar(hpBar);
     player->reset();
 
-    mainLayout->addWidget(createSection("Gem Area", 450));
+    // 符石區
+    gemArea = new GemAreaWidget(this);
+    gemArea->setFixedSize(540, 450);
+    mainLayout->addWidget(gemArea);
+
+    // 轉珠計時連接
+    connect(gemArea, &GemAreaWidget::dragStarted, this, [=]() {
+        if (player) player->startMoveTimer();
+    });
+
+    connect(player, &Player::moveTimeUp, this, [=]() {
+        gemArea->forceStopDragging();
+        // gemArea->enableDrag(false);  // 禁用拖曳（時間到）
+    });
+
+    connect(gemArea, &GemAreaWidget::dragFinished, this, [=]() {
+        if (player) player->stopMoveTimer();
+    });
 
 }
 
@@ -153,22 +162,10 @@ void GameStageWidget::nextWave()
     }
 }
 
-void GameStageWidget::mousePressEvent(QMouseEvent *event)
-{
-    // 若目前未啟動倒數才啟動
-    if (player) {
-        player->startMoveTimer();  // 內部會檢查 timer 是否正在跑
-    }
-
-    // 可選：如果你有 gem 拖曳，可以把 event 傳給 GemArea 處理
-    // QWidget::mousePressEvent(event); // 若要保留 Qt 默認行為
-}
-
 bool GameStageWidget::checkAllEnemiesDefeated(bool emitIfPassed)
 {
-
     for (Enemy* e : enemies) {
-            if (e && e->currentHp > 0) return false;  // ❗ 要加上 e != nullptr 檢查
+            if (e && e->currentHp > 0) return false;  // 加上 e != nullptr 檢查
     }
     qDebug() << "[GameStage] All enemies defeated. Emitting wavePass";
     if (emitIfPassed)

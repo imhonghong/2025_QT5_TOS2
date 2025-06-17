@@ -6,12 +6,9 @@
 #include <QPropertyAnimation>
 
 GemAreaWidget::GemAreaWidget(QWidget* parent)
-    : QWidget(parent), gridLayout(new QGridLayout(this))
+    : QWidget(parent)
 {
-    setFixedSize(6 * GEM_SIZE, 5 * GEM_SIZE);
-    setLayout(gridLayout);
-    gridLayout->setSpacing(0);
-    gridLayout->setMargin(0);
+    setFixedSize(COLS * GEM_SIZE, ROWS * GEM_SIZE);
     initializeBoard();
 }
 
@@ -44,8 +41,10 @@ void GemAreaWidget::initializeBoard()
 
             // 建立 Gem
             Gem* gem = new Gem(attr, "Normal", this);
+            gem->setFixedSize(GEM_SIZE, GEM_SIZE);
+            gem->move(col * GEM_SIZE, row * GEM_SIZE);  // ✅ 設定正確位置
+            gem->show();                                 // ✅ 顯示出來
             gemGrid[row][col] = gem;
-            gridLayout->addWidget(gem, row, col);
         }
     }
 }
@@ -90,8 +89,9 @@ void GemAreaWidget::mouseMoveEvent(QMouseEvent* event)
 {
     if (!isDragging) return;
     QPoint currentIndex = getCellFromPosition(event->x(), event->y());
-    if (!gridLayout->itemAtPosition(currentIndex.x(), currentIndex.y())) return;
-    // if (passedCells.contains(currentIndex)) return;
+    if (currentIndex.x() < 0 || currentIndex.x() >= ROWS ||
+        currentIndex.y() < 0 || currentIndex.y() >= COLS)
+        return;
 
     Gem* currentGem = gemGrid[currentIndex.x()][currentIndex.y()];
     if (!currentGem) return;
@@ -122,28 +122,35 @@ void GemAreaWidget::mouseReleaseEvent(QMouseEvent* /*event*/)
     if (!isDragging) return;
         isDragging = false;
     releaseMouse();
-    checkAndMarkCombo();
     emit dragFinished();
+    if (!isComboResolving)
+            resolveComboCycle();
+
     qDebug() << "[GemArea] Drag ended. Passed through:" << passedCells;
 }
 
 void GemAreaWidget::swapGems(QPoint a, QPoint b)
 {
-    if (!gridLayout->itemAtPosition(a.x(), a.y()) || !gridLayout->itemAtPosition(b.x(), b.y()))
-        return;
+    int rowA = a.x(), colA = a.y();
+    int rowB = b.x(), colB = b.y();
 
-    QWidget* widgetA = gridLayout->itemAtPosition(a.x(), a.y())->widget();
-    QWidget* widgetB = gridLayout->itemAtPosition(b.x(), b.y())->widget();
+    std::swap(gemGrid[rowA][colA], gemGrid[rowB][colB]);
 
-    if (!widgetA || !widgetB) return;
+    Gem* gemA = gemGrid[rowA][colA];
+    Gem* gemB = gemGrid[rowB][colB];
 
-    gridLayout->removeWidget(widgetA);
-    gridLayout->removeWidget(widgetB);
+    QPoint posA(colA * GEM_SIZE, rowA * GEM_SIZE);
+    QPoint posB(colB * GEM_SIZE, rowB * GEM_SIZE);
 
-    gridLayout->addWidget(widgetA, b.x(), b.y());
-    gridLayout->addWidget(widgetB, a.x(), a.y());
+    QPropertyAnimation* animA = new QPropertyAnimation(gemA, "pos");
+    animA->setDuration(80);
+    animA->setEndValue(posA);
+    animA->start(QAbstractAnimation::DeleteWhenStopped);
 
-    std::swap(gemGrid[a.x()][a.y()], gemGrid[b.x()][b.y()]);
+    QPropertyAnimation* animB = new QPropertyAnimation(gemB, "pos");
+    animB->setDuration(80);
+    animB->setEndValue(posB);
+    animB->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
 QMap<QString, int> GemAreaWidget::getNcarMap() const
@@ -164,6 +171,8 @@ void GemAreaWidget::forceStopDragging()
         isDragging = false;
 
     releaseMouse();
+    resolveComboCycle();
+
     qDebug() << "[GemArea] Force stopped dragging due to timeout.";
 }
 
@@ -197,25 +206,6 @@ void GemAreaWidget::randomSetWeathered(int count)
     qDebug() << "[GemArea] Set" << count << "weathered runestones";
 }
 
-/*
-void GemAreaWidget::randomSetWeathered(int count) {
-    int added = 0;
-    int tryLimit = 200;  // 避免無窮迴圈
-    while (added < count && tryLimit--) {
-        int x = QRandomGenerator::global()->bounded(6);
-        int y = QRandomGenerator::global()->bounded(5);
-        Gem* g = gems[y][x];
-
-        // ✅ 只風化 Normal 狀態的珠子（避免剛變 Normal 又被風化）
-        if (g->getState() == "Normal") {
-            g->setState("Weathered");
-            added++;
-        }
-    }
-    qDebug() << "[GemArea] Set" << count << "weathered runestones";
-}
-
-*/
 bool GemAreaWidget::checkAndMarkCombo() {
     const int ROWS = 5;
     const int COLS = 6;
@@ -332,7 +322,7 @@ void GemAreaWidget::dropGems()
             if (!gemGrid[row][col] || gemGrid[row][col]->getState() == "Clearing") {
                 int searchRow = row - 1;
                 while (searchRow >= 0) {
-                    if (gemGrid[searchRow][col] && gemGrid[searchRow][col]->getState() == "Normal") {
+                    if (gemGrid[searchRow][col] && gemGrid[searchRow][col]->getState() != "Clearing") {
                         // 1. 從上層撿一顆珠子
                         Gem* fallingGem = gemGrid[searchRow][col];
                         gemGrid[row][col] = fallingGem;
@@ -363,7 +353,7 @@ void GemAreaWidget::dropGems()
 void GemAreaWidget::refillGems()
 {
     const int GEM_SIZE = 90;  // 根據你設計的大小
-    QStringList attrs = {"Water", "Fire", "Earth", "Light", "Dark"};
+    QStringList attrs = {"Water", "Fire", "Earth", "Light", "Dark", "Heart"};
 
     for (int col = 0; col < COLS; ++col) {
         for (int row = 0; row < ROWS; ++row) {
@@ -393,6 +383,10 @@ void GemAreaWidget::refillGems()
 
 void GemAreaWidget::resolveComboCycle()
 {
+    // ✅ 清空這一輪 combo 統計（防止重複累加）
+    comboCount = 0;
+    ncarMap.clear();
+
     if (!isComboResolving) {
         totalComboCount = 0;
         totalNcarMap.clear();
@@ -419,7 +413,8 @@ void GemAreaWidget::resolveComboCycle()
             });
         });
     } else {
-        isComboResolving = false;  // ✅ 標示 cycle 結束
-        emit comboResolved(totalComboCount, totalNcarMap);  // ✅ 只 emit 一次累積結果
+        isComboResolving = false;  // ✅ 遞迴終止
+        emit comboResolved(totalComboCount, totalNcarMap);
     }
+
 }

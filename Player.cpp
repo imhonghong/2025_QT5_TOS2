@@ -133,6 +133,7 @@ void Player::processEnemyTurn(const QVector<Enemy*>& enemies)
 {
 
     for (Enemy* e : enemies) {
+        if (!e || e->currentHp <=0 ) continue;  // ✅ 死亡敵人不做任何事
         if (e) {
                 e->applySkill_ID5(gemArea);  // 每隻敵人每回合都可施放技能
             }

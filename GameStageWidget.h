@@ -25,6 +25,8 @@ public:
 
     bool checkAllEnemiesDefeated(bool emitIfPassed = true);
 
+    bool isWaveTransitioning = false;
+
 public slots:
     void handleComboResolved(int combo, QMap<QString, int> ncarMap);
 
@@ -33,6 +35,7 @@ signals:
     void wavePass();
     void gameFail();
     void gamePass();
+
 
 private:
     QPushButton *settingButton;
@@ -56,8 +59,10 @@ private:
     int currentWave;
     QVector<Enemy*> enemies;
 
+
     // combo
     QLabel* comboLabel;
     QWidget* comboOverlay;
+    QLabel* recoveryLabel = nullptr;
 
 };

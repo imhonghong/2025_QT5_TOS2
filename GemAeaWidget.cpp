@@ -414,7 +414,9 @@ void GemAreaWidget::resolveComboCycle()
         });
     } else {
         isComboResolving = false;  // ✅ 遞迴終止
-        emit comboResolved(totalComboCount, totalNcarMap);
+        comboCycleFinished = true;
+        emit comboResolved(totalComboCount, totalNcarMap);  // 現有的
+        emit comboFullyResolved();  // ✅ 僅這裡 emit
     }
 
 }

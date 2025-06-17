@@ -134,7 +134,7 @@ void GameStageWidget::setup(const QVector<Hero*>& heroes, int mission)
     player->setHeroTeam(heroes);
     player->setGemArea(gemArea);
 
-    // combo
+    // combo and recovery
     comboOverlay = new QWidget(this);
     comboOverlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);");
     comboOverlay->setGeometry(0, 510, 540, 450);  // ✅ 絕對座標
@@ -146,6 +146,13 @@ void GameStageWidget::setup(const QVector<Hero*>& heroes, int mission)
     comboLabel->setGeometry(100, 50, 960-100-20, 450-50-20);        // ✅ 相對於 comboOverlay 的位置
     comboLabel->setAlignment(Qt::AlignCenter);
     comboLabel->hide();
+
+    recoveryLabel = new QLabel(this);
+    recoveryLabel->setStyleSheet("QLabel { color: green; font-size: 24px; font-weight: bold; }");
+    recoveryLabel->setFixedSize(100, 50);
+    recoveryLabel->move((560-100)/2, 960-450-50);  // 可視 UI 調整
+    recoveryLabel->setAlignment(Qt::AlignCenter);
+    recoveryLabel->hide();
 }
 
 void GameStageWidget::initWaves(int mission)
@@ -189,17 +196,19 @@ void GameStageWidget::nextWave()
     } else {
         showWave(currentWave);
     }
+    isWaveTransitioning = false;
 }
 
 bool GameStageWidget::checkAllEnemiesDefeated(bool emitIfPassed)
 {
     for (Enemy* e : enemies) {
-            if (e && e->currentHp > 0) return false;  // 加上 e != nullptr 檢查
+        if (e && e->currentHp > 0) {
+            return false;
+        }
     }
-    qDebug() << "[GameStage] All enemies defeated. Emitting wavePass";
-    if (emitIfPassed)
+    if (emitIfPassed) {
         emit wavePass();
-
+    }
     return true;
 }
 
@@ -236,12 +245,18 @@ void GameStageWidget::handleComboResolved(int combo, QMap<QString, int> ncarMap)
             comboLabel->hide();
             comboOverlay->hide();
 
-            // 💥 攻擊 & 回復之後再進入敵人回合
-            player->attackAllEnemies(enemies, combo, ncarMap);
+            QTimer::singleShot(300, this, [=]() {
+                    player->attackAllEnemies(enemies, combo, ncarMap);
+                });
             player->recoverHp(combo, ncarMap.value("Heart", 0));
-
-            // 判斷是否要進下一關
-            checkAllEnemiesDefeated();
+            int recovery = combo * ncarMap.value("Heart", 0) * 5;
+            recoveryLabel->setText(QString("+%1").arg(recovery));
+            if (recovery !=0 ){
+                recoveryLabel->show();
+                QTimer::singleShot(1000, this, [=]() {
+                    recoveryLabel->hide();
+                });
+            }
         });
     }
 }

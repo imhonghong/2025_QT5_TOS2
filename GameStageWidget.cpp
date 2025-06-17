@@ -88,6 +88,9 @@ GameStageWidget::GameStageWidget(QWidget *parent)
 
     connect(gemArea, &GemAreaWidget::dragFinished, this, [=]() {
         if (player) player->stopMoveTimer();
+        qDebug() << "[GameStage] drag finished — calling combo check";
+        gemArea->checkAndMarkCombo();
+
     });
 
 }

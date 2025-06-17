@@ -1,4 +1,5 @@
 #include "GemAreaWidget.h"
+#include "Gem.h"
 #include <QMouseEvent>
 #include <QDebug>
 #include <QRandomGenerator>
@@ -75,10 +76,10 @@ bool GemAreaWidget::areAdjacent(QPoint a, QPoint b) const
 
 void GemAreaWidget::mousePressEvent(QMouseEvent* event)
 {
-
     pressedIndex = getCellFromPosition(event->x(), event->y());
     passedCells.clear();
     isDragging = true;
+    hasComboChecked = false;
     grabMouse();
     passedCells.append(pressedIndex);
     emit dragStarted();  // 發出拖曳開始訊號給 player
@@ -110,8 +111,10 @@ void GemAreaWidget::mouseMoveEvent(QMouseEvent* event)
     QPoint last = passedCells.last();
     if (areAdjacent(currentIndex, last)) {
         swapGems(last, currentIndex);
+        // qDebug() << "[GemArea] Swapping" << last << "<->" << currentIndex;
         passedCells.append(currentIndex);
     }
+
 }
 
 void GemAreaWidget::mouseReleaseEvent(QMouseEvent* /*event*/)
@@ -119,6 +122,7 @@ void GemAreaWidget::mouseReleaseEvent(QMouseEvent* /*event*/)
     if (!isDragging) return;
         isDragging = false;
     releaseMouse();
+    checkAndMarkCombo();
     emit dragFinished();
     qDebug() << "[GemArea] Drag ended. Passed through:" << passedCells;
 }
@@ -158,8 +162,10 @@ void GemAreaWidget::forceStopDragging()
 {
     if (!isDragging) return;     // ✅ 避免重複
         isDragging = false;
+    if (!hasComboChecked) {
+        emit dragFinished(); // ⚠️ 僅 emit 一次
+    }
     releaseMouse();
-
     qDebug() << "[GemArea] Force stopped dragging due to timeout.";
 }
 
@@ -191,4 +197,107 @@ void GemAreaWidget::randomSetWeathered(int count)
     }
 
     qDebug() << "[GemArea] Set" << count << "weathered runestones";
+}
+
+void GemAreaWidget::checkAndMarkCombo() {
+    const int ROWS = 5;
+    const int COLS = 6;
+    QSet<QPair<int, int>> candidateSet;
+
+    comboCount = 0;
+    ncarMap.clear();
+    if (hasComboChecked) return;
+    hasComboChecked = true;
+
+    // Step 1: 找出橫向三連
+    for (int row = 0; row < ROWS; ++row) {
+        int col = 0;
+        while (col < COLS - 2) {
+            QString attr = gemGrid[row][col]->getAttr();
+            if (gemGrid[row][col + 1]->getAttr() == attr &&
+                gemGrid[row][col + 2]->getAttr() == attr) {
+                // int start = col;
+                while (col < COLS && gemGrid[row][col]->getAttr() == attr) {
+                    candidateSet.insert(qMakePair(row, col));
+                    ++col;
+                }
+            } else {
+                ++col;
+            }
+        }
+    }
+
+    // Step 2: 找出縱向三連
+    for (int col = 0; col < COLS; ++col) {
+        int row = 0;
+        while (row < ROWS - 2) {
+            QString attr = gemGrid[row][col]->getAttr();
+            if (gemGrid[row + 1][col]->getAttr() == attr &&
+                gemGrid[row + 2][col]->getAttr() == attr) {
+                // int start = row;
+                while (row < ROWS && gemGrid[row][col]->getAttr() == attr) {
+                    candidateSet.insert(qMakePair(row, col));
+                    ++row;
+                }
+            } else {
+                ++row;
+            }
+        }
+    }
+
+    // Step 3: 找出連通區塊
+    QSet<QPair<int, int>> visited;
+    for (const auto& pos : candidateSet) {
+        if (visited.contains(pos)) continue;
+
+        QVector<QPair<int, int>> group;
+        QString attr = gemGrid[pos.first][pos.second]->getAttr();
+        dfsCombo(pos.first, pos.second, attr, candidateSet, visited, group);
+
+        if (!group.isEmpty()) {
+            comboCount++;
+            ncarMap[attr] += group.size();
+            for (const auto& p : group) {
+                gemGrid[p.first][p.second]->setState("Clearing");
+            }
+        }
+    }
+    emit comboResolved(comboCount, ncarMap);
+    qDebug() << "Combo Count:" << comboCount;
+    qDebug() << "ncarMap:" << ncarMap;
+}
+
+void GemAreaWidget::dfsCombo(int r, int c, const QString& attr,
+                             const QSet<QPair<int, int>>& candidates,
+                             QSet<QPair<int, int>>& visited,
+                             QVector<QPair<int, int>>& group) {
+    if (r < 0 || r >= 5 || c < 0 || c >= 6) return;
+    QPair<int, int> pos(r, c);
+    if (visited.contains(pos) || !candidates.contains(pos)) return;
+    if (gemGrid[r][c]->getAttr() != attr) return;
+
+    visited.insert(pos);
+    group.append(pos);
+
+    dfsCombo(r + 1, c, attr, candidates, visited, group);
+    dfsCombo(r - 1, c, attr, candidates, visited, group);
+    dfsCombo(r, c + 1, attr, candidates, visited, group);
+    dfsCombo(r, c - 1, attr, candidates, visited, group);
+}
+
+void GemAreaWidget::clearMatchedGems() {
+    const int ROWS = 5;
+    const int COLS = 6;
+
+    for (int row = 0; row < ROWS; ++row) {
+        for (int col = 0; col < COLS; ++col) {
+            Gem* gem = gems[row][col];
+            if (gem && gem->getState() == "Clearing") {
+                gridLayout->removeWidget(gem);
+                gem->setParent(nullptr);
+                delete gem;
+                gems[row][col] = nullptr;
+            }
+        }
+    }
 }

@@ -3,6 +3,7 @@
 #include <QWidget>
 #include <QGridLayout>
 #include <QPoint>
+#include <QMap>
 #include "Gem.h"
 #include "Player.h"
 
@@ -16,16 +17,23 @@ public:
 
     void initializeBoard();
     void resetBoard();
-    QMap<QString, int> getNcarMap() const;
-    int getComboCount() const;
 
     void setPlayer(Player* p);
     void randomSetWeathered(int count);
 
+    QMap<QString, int> getNcarMap() const;
+    int getComboCount() const;
+    void checkAndMarkCombo();
+    void dfsCombo(int r, int c, const QString& attr,
+                  const QSet<QPair<int, int>>& candidates,
+                  QSet<QPair<int, int>>& visited,
+                  QVector<QPair<int, int>>& group); // helper of checkAndMarkCombo()
+    void clearMatchedGems();
 
 signals:
     void dragStarted(); // 發出訊號給 player
     void dragFinished();  // 玩家主動結束轉珠
+    void comboResolved(int comboCount, QMap<QString, int> ncarMap); //把combo傳給mainwindow
 
 public slots:
     void forceStopDragging();  // 給 Player 呼叫，強制停止拖曳
@@ -44,10 +52,15 @@ private:
     QVector<QPoint> passedCells;
 
     bool isDragging = false;
+    bool hasComboChecked = false;
 
     QPoint getCellFromPosition(int x, int y) const;
     bool areAdjacent(QPoint a, QPoint b) const;
     void swapGems(QPoint a, QPoint b);
 
     Player* player = nullptr;
+
+    int comboCount;
+    QMap<QString, int> ncarMap;
+    Gem* gems[5][6];
 };

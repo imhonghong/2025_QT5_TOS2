@@ -4,6 +4,7 @@
 #include "PauseStageWidget.h"
 #include "FinishStageWidget.h"
 #include "GemAreaWidget.h"
+#include "Player.h"
 #include <QApplication>
 #include <QDebug>
 
@@ -74,23 +75,12 @@ MainWindow::MainWindow(QWidget *parent)
         gameStage->nextWave();
     });
 
-    connect(gameStage->getPlayer(), &Player::moveTimeUp, this, [=]() {
-
+    connect(gameStage->getGemArea(), &GemAreaWidget::comboResolved,
+            this, [=](int combo, QMap<QString, int> ncar) {
         Player* p = gameStage->getPlayer();
         QVector<Enemy*> enemies = gameStage->getCurrentEnemies();
-
-        // 🟢 先攻擊
-        int combo = 6;
-        QMap<QString, int> ncarMap = {
-            {"Water", 3},
-            {"Fire", 4},
-            {"Earth", 5},
-            {"Light", 6},
-            {"Dark", 3},
-            {"Heart", 5}
-        };
-        p->attackAllEnemies(enemies, combo, ncarMap);
-        p->recoverHp(combo, ncarMap.value("Heart", 0));
+        p->attackAllEnemies(enemies, combo, ncar);
+        p->recoverHp(combo, ncar.value("Heart", 0));
 
         // 🟢 檢查是否全數擊敗
         if (gameStage->checkAllEnemiesDefeated(false)) {
@@ -100,14 +90,12 @@ MainWindow::MainWindow(QWidget *parent)
         }
 
         // 🟢 敵人回合
-
         p->processEnemyTurn(enemies);
 
         // 🟢 檢查自己是否死亡
         if (p->isDead()) {
             switchToFinishStage(false);
         }
-
     });
 }
 

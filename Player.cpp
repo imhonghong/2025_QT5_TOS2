@@ -256,3 +256,4 @@ void Player::setGemArea(GemAreaWidget* g)
 {
     gemArea = g;
 }
+

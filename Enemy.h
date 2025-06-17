@@ -23,6 +23,7 @@ public:
     int originalCd; // ⬅️ 新增：初始冷卻時間
     int cd;         // ⬅️ 新增：當前冷卻倒數時間
 
+    QWidget* enemyWidget = nullptr;
     QProgressBar* hpBar = nullptr;  // 可選：讓 Enemy 控制自己的 UI 血條
     QLabel* cdLabel = nullptr;
 

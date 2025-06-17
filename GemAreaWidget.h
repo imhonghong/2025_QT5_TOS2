@@ -23,12 +23,15 @@ public:
 
     QMap<QString, int> getNcarMap() const;
     int getComboCount() const;
-    void checkAndMarkCombo();
+    bool checkAndMarkCombo();
     void dfsCombo(int r, int c, const QString& attr,
                   const QSet<QPair<int, int>>& candidates,
                   QSet<QPair<int, int>>& visited,
                   QVector<QPair<int, int>>& group); // helper of checkAndMarkCombo()
     void clearMatchedGems();
+    void dropGems();
+    void refillGems();
+    void resolveComboCycle();
 
 signals:
     void dragStarted(); // 發出訊號給 player
@@ -46,13 +49,16 @@ protected:
 private:
     static const int ROWS = 5;
     static const int COLS = 6;
+    static const int GEM_SIZE = 90;
     Gem* gemGrid[ROWS][COLS];
     QGridLayout* gridLayout;
     QPoint pressedIndex;
     QVector<QPoint> passedCells;
 
     bool isDragging = false;
-    bool hasComboChecked = false;
+    int totalComboCount = 0;
+    QMap<QString, int> totalNcarMap;
+    bool isComboResolving = false;
 
     QPoint getCellFromPosition(int x, int y) const;
     bool areAdjacent(QPoint a, QPoint b) const;

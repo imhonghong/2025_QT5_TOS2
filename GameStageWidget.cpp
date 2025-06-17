@@ -6,6 +6,8 @@
 #include <QDebug>
 #include <QPushButton>
 #include <QMouseEvent>
+#include <QPropertyAnimation>
+#include <QGraphicsOpacityEffect>
 #include "Enemy.h"
 #include "Player.h"
 
@@ -89,8 +91,12 @@ GameStageWidget::GameStageWidget(QWidget *parent)
     connect(gemArea, &GemAreaWidget::dragFinished, this, [=]() {
         if (player) player->stopMoveTimer();
         qDebug() << "[GameStage] drag finished — calling combo check";
-        gemArea->checkAndMarkCombo();
+        gemArea->resolveComboCycle();
+    });
 
+    connect(player, &Player::attackFinished, this, [=]() {
+        qDebug() << "[GameStage] All heroes attacked — check enemies";
+        checkAllEnemiesDefeated(true);  // ✅ 明確觸發下一關判斷
     });
 
 }
@@ -109,11 +115,11 @@ void GameStageWidget::setup(const QVector<Hero*>& heroes, int mission)
     // 顯示角色或空格框
     for (Hero* h : heroes) {
         QLabel* icon = new QLabel(this);
-        icon->setFixedSize(85, 85);
+        icon->setFixedSize(90, 90);
 
         if (h) {
             QPixmap pix(h->iconPath);
-            icon->setPixmap(pix.scaled(85, 85));
+            icon->setPixmap(pix.scaled(90, 90));
         //} else {
         // 留白但加上框線
         //icon->setStyleSheet("border: 1px solid gray;");
@@ -127,6 +133,19 @@ void GameStageWidget::setup(const QVector<Hero*>& heroes, int mission)
     showWave(currentWave);
     player->setHeroTeam(heroes);
     player->setGemArea(gemArea);
+
+    // combo
+    comboOverlay = new QWidget(this);
+    comboOverlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);");
+    comboOverlay->setGeometry(0, 510, 540, 450);  // ✅ 絕對座標
+    comboOverlay->setAttribute(Qt::WA_TransparentForMouseEvents);
+    comboOverlay->hide();
+
+    comboLabel = new QLabel(comboOverlay);  // ✅ 讓 label 蓋在 overlay 上
+    comboLabel->setStyleSheet("QLabel { color: orange; font-size: 24px; font-weight: bold; }");
+    comboLabel->setGeometry(100, 50, 960-100-20, 450-50-20);        // ✅ 相對於 comboOverlay 的位置
+    comboLabel->setAlignment(Qt::AlignCenter);
+    comboLabel->hide();
 }
 
 void GameStageWidget::initWaves(int mission)
@@ -182,4 +201,47 @@ bool GameStageWidget::checkAllEnemiesDefeated(bool emitIfPassed)
         emit wavePass();
 
     return true;
+}
+
+void GameStageWidget::handleComboResolved(int combo, QMap<QString, int> ncarMap)
+{
+    if (combo > 0) {
+        comboOverlay->show();
+        comboLabel->setText(QString("COMBO %1").arg(combo));
+        comboLabel->adjustSize();
+        comboLabel->move((comboOverlay->width() - comboLabel->width()) / 2,
+                         comboOverlay->height() - 100);
+        comboLabel->setGraphicsEffect(nullptr);
+        comboLabel->show();
+
+        // 飄升動畫
+        QPropertyAnimation* moveAnim = new QPropertyAnimation(comboLabel, "pos");
+        moveAnim->setDuration(500);
+        moveAnim->setStartValue(comboLabel->pos());
+        moveAnim->setEndValue(QPoint(300, 420 - 60));  // 上飄
+        moveAnim->setEasingCurve(QEasingCurve::OutCubic);
+
+        QGraphicsOpacityEffect* effect = new QGraphicsOpacityEffect(comboLabel);
+        comboLabel->setGraphicsEffect(effect);
+
+        QPropertyAnimation* fadeAnim = new QPropertyAnimation(effect, "opacity");
+        fadeAnim->setDuration(1000);
+        fadeAnim->setStartValue(1.0);
+        fadeAnim->setEndValue(0.0);
+
+        moveAnim->start(QAbstractAnimation::DeleteWhenStopped);
+        fadeAnim->start(QAbstractAnimation::DeleteWhenStopped);
+
+        connect(fadeAnim, &QPropertyAnimation::finished, this, [=]() {
+            comboLabel->hide();
+            comboOverlay->hide();
+
+            // 💥 攻擊 & 回復之後再進入敵人回合
+            player->attackAllEnemies(enemies, combo, ncarMap);
+            player->recoverHp(combo, ncarMap.value("Heart", 0));
+
+            // 判斷是否要進下一關
+            checkAllEnemiesDefeated();
+        });
+    }
 }

@@ -76,27 +76,8 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(gameStage->getGemArea(), &GemAreaWidget::comboResolved,
-            this, [=](int combo, QMap<QString, int> ncar) {
-        Player* p = gameStage->getPlayer();
-        QVector<Enemy*> enemies = gameStage->getCurrentEnemies();
-        p->attackAllEnemies(enemies, combo, ncar);
-        p->recoverHp(combo, ncar.value("Heart", 0));
+            gameStage, &GameStageWidget::handleComboResolved);
 
-        // 🟢 檢查是否全數擊敗
-        if (gameStage->checkAllEnemiesDefeated(false)) {
-            qDebug() << "All enemies dead — now trigger wavePass";
-            gameStage->checkAllEnemiesDefeated(true);  // 明確 emit
-            return;
-        }
-
-        // 🟢 敵人回合
-        p->processEnemyTurn(enemies);
-
-        // 🟢 檢查自己是否死亡
-        if (p->isDead()) {
-            switchToFinishStage(false);
-        }
-    });
 }
 
 void MainWindow::switchToPrepareStage() {

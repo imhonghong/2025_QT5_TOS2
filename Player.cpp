@@ -2,6 +2,8 @@
 #include <QDebug>
 #include "Enemy.h"
 #include <QRandomGenerator>
+#include <QPropertyAnimation>
+
 
 Player::Player(QObject *parent)
     : QObject(parent),
@@ -145,8 +147,7 @@ void Player::processEnemyTurn(const QVector<Enemy*>& enemies)
 }
 
 void Player::attackAllEnemies(QVector<Enemy*>& enemies,
-                               int combo,
-                               const QMap<QString, int>& ncarPerAttr)
+                              int combo, const QMap<QString, int>& ncarPerAttr)
 {
     qDebug() << "[Player] attackAllEnemies called. Combo =" << combo;
     qDebug() << "[Player] Hero count =" << heroes.size();
@@ -167,8 +168,8 @@ void Player::attackAllEnemies(QVector<Enemy*>& enemies,
             if (def == "Water" && atk == "Earth") ac = 0.5;
             else if (def == "Fire" && atk == "Water") ac = 0.5;
             else if (def == "Earth" && atk == "Fire") ac = 0.5;
-            else if (def == "Light" && atk == "Dark") ac = 0.5;
-            else if (def == "Dark" && atk == "Light") ac = 0.5;
+            // else if (def == "Light" && atk == "Dark") ac = 0.5;
+            // else if (def == "Dark" && atk == "Light") ac = 0.5;
 
             acTable[atk][def] = ac;
         }
@@ -191,47 +192,8 @@ void Player::attackAllEnemies(QVector<Enemy*>& enemies,
             aliveEnemies.append(e);
         }
     }
-
-    // 4. 每隻 Hero 出手一次
-    for (Hero* h : heroes) {
-        if (!h) continue;
-
-        QString attr = h->attr;
-        double damage = totalDamage.value(attr, 0);
-        qDebug() << "[Hero] ID:" << h->id
-                 << "| Attr:" << attr
-                 << "| ATK:" << h->atk
-                 << "| totalDamage =" << damage;
-
-        if (damage <= 0) continue;
-
-        // 找一隻還活著的敵人
-        QVector<Enemy*> candidates;
-        for (Enemy* e : aliveEnemies) {
-            if (e->currentHp > 0)
-                candidates.append(e);
-        }
-
-        if (candidates.isEmpty()) return;
-
-        int idx = QRandomGenerator::global()->bounded(candidates.size());
-        Enemy* target = candidates[idx];
-
-        double ac = acTable[attr].value(target->attr, 1.0);
-        int finalDmg = static_cast<int>(damage * ac + 0.5);
-
-        qDebug() << " -> Attacking enemy ID:" << target->id
-                 << "(Attr:" << target->attr
-                 << "| HP before:" << target->currentHp
-                 << ") AC =" << ac
-                 << "| Final Damage =" << finalDmg;
-
-        target->takeDamage(finalDmg);
-
-        qDebug() << "    >> Enemy ID:" << target->id
-                 << "| HP after:" << target->currentHp
-                 << (target->currentHp <= 0 ? "(DEFEATED)" : "");
-    }
+    // 4. 循序攻擊敵人
+    attackSequentially(enemies, totalDamage, acTable, heroes, 0);
 }
 
 void Player::recoverHp(int combo, int nHeart)
@@ -257,3 +219,79 @@ void Player::setGemArea(GemAreaWidget* g)
     gemArea = g;
 }
 
+void Player::attackSequentially(QVector<Enemy*> enemies,
+                                const QMap<QString, double>& totalDamage,
+                                const QMap<QString, QMap<QString, double>>& acTable,
+                                QVector<Hero*> heroesToAttack,
+                                int index)
+{
+    if (index >= heroesToAttack.size()) {  // 所有英雄已出手完畢
+        emit attackFinished();
+        return;
+    }
+
+    Hero* h = heroesToAttack[index];
+    if (!h) {
+        attackSequentially(enemies, totalDamage, acTable, heroesToAttack, index + 1);
+        return;
+    }
+
+    QString attr = h->attr;
+    double damage = totalDamage.value(attr, 0);
+    if (damage <= 0) {
+        attackSequentially(enemies, totalDamage, acTable, heroesToAttack, index + 1);
+        return;
+    }
+
+    QVector<Enemy*> aliveEnemies;
+    for (Enemy* e : enemies) {
+        if (e && e->currentHp > 0) aliveEnemies.append(e);
+    }
+    if (aliveEnemies.isEmpty()) {
+        QTimer::singleShot(300, this, [=]() {
+            emit attackFinished();  // ✅ 一定要發出
+        });
+        return;
+    }
+
+    Enemy* target = aliveEnemies[QRandomGenerator::global()->bounded(aliveEnemies.size())];
+    double ac = acTable[attr].value(target->attr, 1.0);
+    int finalDmg = static_cast<int>(damage * ac + 0.5);
+
+    target->takeDamage(finalDmg);
+
+    // 🔥 顯示動畫（依屬性上色）
+    if (target->enemyWidget) {
+        QLabel* dmgLabel = new QLabel("-" + QString::number(finalDmg), target->enemyWidget->parentWidget());
+        QString color;
+        if (attr == "Fire") color = "red";
+        else if (attr == "Water") color = "blue";
+        else if (attr == "Earth") color = "green";
+        else if (attr == "Light") color = "gold";
+        else if (attr == "Dark") color = "purple";
+        else color = "black";
+
+        dmgLabel->setStyleSheet(QString("color: %1; font-weight: bold; font-size: 20px;").arg(color));
+        dmgLabel->adjustSize();
+        QPoint startPos = target->enemyWidget->pos() + QPoint(target->enemyWidget->width()/2 - dmgLabel->width()/2, 0);
+        dmgLabel->move(startPos);
+        dmgLabel->show();
+
+        QPropertyAnimation* anim = new QPropertyAnimation(dmgLabel, "pos");
+        anim->setDuration(800);
+        anim->setStartValue(startPos);
+        anim->setEndValue(startPos - QPoint(0, 40));
+        anim->setEasingCurve(QEasingCurve::OutQuad);
+        anim->start(QAbstractAnimation::DeleteWhenStopped);
+
+        QTimer::singleShot(700, dmgLabel, [=]() {
+            dmgLabel->hide();
+            dmgLabel->deleteLater();
+        });
+    }
+
+    // 🔁 延遞下一位 Hero 攻擊
+    QTimer::singleShot(400, this, [=]() {
+        attackSequentially(enemies, totalDamage, acTable, heroesToAttack, index + 1);
+    });
+}

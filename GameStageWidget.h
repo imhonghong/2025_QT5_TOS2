@@ -25,6 +25,8 @@ public:
 
     bool checkAllEnemiesDefeated(bool emitIfPassed = true);
 
+public slots:
+    void handleComboResolved(int combo, QMap<QString, int> ncarMap);
 
 signals:
     void pauseGame();
@@ -53,5 +55,9 @@ private:
     QVector<QVector<Enemy*>> waves;
     int currentWave;
     QVector<Enemy*> enemies;
+
+    // combo
+    QLabel* comboLabel;
+    QWidget* comboOverlay;
 
 };

@@ -29,9 +29,15 @@ public:
 
     void processEnemyTurn(const QVector<Enemy*>& enemies);
 
-    void attackAllEnemies(QVector<Enemy*>& enemies,
-                          int combo,
+    void attackAllEnemies(QVector<Enemy*>& enemies, int combo,
                           const QMap<QString, int>& ncarPerAttr);
+
+    void attackSequentially(QVector<Enemy*> enemies,
+                            const QMap<QString, double>& totalDamage,
+                            const QMap<QString, QMap<QString, double>>& acTable,
+                            QVector<Hero*> heroesToAttack,
+                            int index); //hepler funciton of attackAllEnemies
+
     void recoverHp(int combo, int nHeart);
 
     void setGemArea(GemAreaWidget* g);  // ✅ 傳入外部盤面
@@ -40,6 +46,7 @@ public:
 signals:
     void moveTimeUp();                      // 倒數結束
     void hpChanged(int current, int max);  // 血量改變
+    void attackFinished(); // hero attack enemy
 
 private slots:
     void onMoveTimerTimeout();

@@ -3,11 +3,12 @@
 #include <QMouseEvent>
 #include <QDebug>
 #include <QRandomGenerator>
+#include <QPropertyAnimation>
 
 GemAreaWidget::GemAreaWidget(QWidget* parent)
     : QWidget(parent), gridLayout(new QGridLayout(this))
 {
-    setFixedSize(6 * 50, 5 * 50);
+    setFixedSize(6 * GEM_SIZE, 5 * GEM_SIZE);
     setLayout(gridLayout);
     gridLayout->setSpacing(0);
     gridLayout->setMargin(0);
@@ -48,6 +49,7 @@ void GemAreaWidget::initializeBoard()
         }
     }
 }
+
 void GemAreaWidget::resetBoard()
 {
     for (int row = 0; row < ROWS; ++row) {
@@ -63,7 +65,7 @@ void GemAreaWidget::resetBoard()
 
 QPoint GemAreaWidget::getCellFromPosition(int x, int y) const
 {
-    return QPoint(y / 90, x / 90);  // (row, col)
+    return QPoint(y / GEM_SIZE, x / GEM_SIZE);  // (row, col)
 }
 
 bool GemAreaWidget::areAdjacent(QPoint a, QPoint b) const
@@ -79,7 +81,6 @@ void GemAreaWidget::mousePressEvent(QMouseEvent* event)
     pressedIndex = getCellFromPosition(event->x(), event->y());
     passedCells.clear();
     isDragging = true;
-    hasComboChecked = false;
     grabMouse();
     passedCells.append(pressedIndex);
     emit dragStarted();  // 發出拖曳開始訊號給 player
@@ -98,7 +99,6 @@ void GemAreaWidget::mouseMoveEvent(QMouseEvent* event)
     // ✅ 檢查是否為風化珠
     if (currentGem->getState() == "Weathered") {
         currentGem->setState("Normal");
-
         if (player) {
             player->takeDamage(100);
         }
@@ -162,9 +162,7 @@ void GemAreaWidget::forceStopDragging()
 {
     if (!isDragging) return;     // ✅ 避免重複
         isDragging = false;
-    if (!hasComboChecked) {
-        emit dragFinished(); // ⚠️ 僅 emit 一次
-    }
+
     releaseMouse();
     qDebug() << "[GemArea] Force stopped dragging due to timeout.";
 }
@@ -173,6 +171,7 @@ void GemAreaWidget::setPlayer(Player* p)
 {
     player = p;
 }
+
 
 void GemAreaWidget::randomSetWeathered(int count)
 {
@@ -186,7 +185,6 @@ void GemAreaWidget::randomSetWeathered(int count)
             }
         }
     }
-
     if (normalGems.size() < count) count = normalGems.size();
 
     for (int i = 0; i < count; ++i) {
@@ -199,15 +197,32 @@ void GemAreaWidget::randomSetWeathered(int count)
     qDebug() << "[GemArea] Set" << count << "weathered runestones";
 }
 
-void GemAreaWidget::checkAndMarkCombo() {
+/*
+void GemAreaWidget::randomSetWeathered(int count) {
+    int added = 0;
+    int tryLimit = 200;  // 避免無窮迴圈
+    while (added < count && tryLimit--) {
+        int x = QRandomGenerator::global()->bounded(6);
+        int y = QRandomGenerator::global()->bounded(5);
+        Gem* g = gems[y][x];
+
+        // ✅ 只風化 Normal 狀態的珠子（避免剛變 Normal 又被風化）
+        if (g->getState() == "Normal") {
+            g->setState("Weathered");
+            added++;
+        }
+    }
+    qDebug() << "[GemArea] Set" << count << "weathered runestones";
+}
+
+*/
+bool GemAreaWidget::checkAndMarkCombo() {
     const int ROWS = 5;
     const int COLS = 6;
     QSet<QPair<int, int>> candidateSet;
 
     comboCount = 0;
     ncarMap.clear();
-    if (hasComboChecked) return;
-    hasComboChecked = true;
 
     // Step 1: 找出橫向三連
     for (int row = 0; row < ROWS; ++row) {
@@ -262,9 +277,16 @@ void GemAreaWidget::checkAndMarkCombo() {
             }
         }
     }
-    emit comboResolved(comboCount, ncarMap);
+    if (comboCount > 0) {
+            qDebug() << "[GemArea] Combo detected:" << comboCount;
+            return true;
+        } else {
+            return false;
+        }
+
     qDebug() << "Combo Count:" << comboCount;
     qDebug() << "ncarMap:" << ncarMap;
+    return comboCount > 0;
 }
 
 void GemAreaWidget::dfsCombo(int r, int c, const QString& attr,
@@ -285,19 +307,119 @@ void GemAreaWidget::dfsCombo(int r, int c, const QString& attr,
     dfsCombo(r, c - 1, attr, candidates, visited, group);
 }
 
-void GemAreaWidget::clearMatchedGems() {
-    const int ROWS = 5;
-    const int COLS = 6;
-
+void GemAreaWidget::clearMatchedGems()
+{
     for (int row = 0; row < ROWS; ++row) {
         for (int col = 0; col < COLS; ++col) {
-            Gem* gem = gems[row][col];
+            Gem* gem = gemGrid[row][col];
             if (gem && gem->getState() == "Clearing") {
-                gridLayout->removeWidget(gem);
-                gem->setParent(nullptr);
-                delete gem;
-                gems[row][col] = nullptr;
+                gem->hide();  // ✅ 隱藏視覺
+                gem->setState("Normal");  // ✅ 重設狀態（以便 drop/reuse）
+                gemGrid[row][col] = nullptr;  // ✅ 標示該格為空，方便 dropGems 使用
             }
         }
+    }
+
+    qDebug() << "[GemArea] clearMatchedGems with hide()";
+}
+
+void GemAreaWidget::dropGems()
+{
+    const int dropDuration = 150;
+
+    for (int col = 0; col < COLS; ++col) {
+        for (int row = ROWS - 1; row >= 0; --row) {
+            if (!gemGrid[row][col] || gemGrid[row][col]->getState() == "Clearing") {
+                int searchRow = row - 1;
+                while (searchRow >= 0) {
+                    if (gemGrid[searchRow][col] && gemGrid[searchRow][col]->getState() == "Normal") {
+                        // 1. 從上層撿一顆珠子
+                        Gem* fallingGem = gemGrid[searchRow][col];
+                        gemGrid[row][col] = fallingGem;
+                        gemGrid[searchRow][col] = nullptr;
+
+                        // 2. 落下動畫
+                        QPoint startPos = fallingGem->pos();
+                        QPoint endPos = QPoint(col * GEM_SIZE, row * GEM_SIZE);
+
+                        QPropertyAnimation* anim = new QPropertyAnimation(fallingGem, "pos");
+                        anim->setDuration(dropDuration);
+                        anim->setStartValue(startPos);
+                        anim->setEndValue(endPos);
+                        anim->setEasingCurve(QEasingCurve::OutBounce);
+                        anim->start(QAbstractAnimation::DeleteWhenStopped);
+
+                        break;
+                    }
+                    --searchRow;
+                }
+            }
+        }
+    }
+
+    qDebug() << "[GemArea] dropGems animation triggered.";
+}
+
+void GemAreaWidget::refillGems()
+{
+    const int GEM_SIZE = 90;  // 根據你設計的大小
+    QStringList attrs = {"Water", "Fire", "Earth", "Light", "Dark"};
+
+    for (int col = 0; col < COLS; ++col) {
+        for (int row = 0; row < ROWS; ++row) {
+            if (!gemGrid[row][col]) {
+                QString attr = attrs[QRandomGenerator::global()->bounded(attrs.size())];
+
+                Gem* newGem = new Gem(attr, "Normal", this);  // ✅ 設定 parent 為 gemArea
+                newGem->setFixedSize(GEM_SIZE, GEM_SIZE);
+                newGem->move(col * GEM_SIZE, -GEM_SIZE);  // ✅ 從上面進入，Y 正確
+                newGem->show();
+
+                gemGrid[row][col] = newGem;
+
+                // 動畫落下
+                QPropertyAnimation* anim = new QPropertyAnimation(newGem, "pos");
+                anim->setDuration(200);
+                anim->setStartValue(QPoint(col * GEM_SIZE, -GEM_SIZE));
+                anim->setEndValue(QPoint(col * GEM_SIZE, row * GEM_SIZE));
+                anim->setEasingCurve(QEasingCurve::OutBounce);
+                anim->start(QAbstractAnimation::DeleteWhenStopped);
+            }
+        }
+    }
+
+    qDebug() << "[GemArea] refillGems: new gems generated";
+}
+
+void GemAreaWidget::resolveComboCycle()
+{
+    if (!isComboResolving) {
+        totalComboCount = 0;
+        totalNcarMap.clear();
+        isComboResolving = true;
+    }
+
+    if (checkAndMarkCombo()) {
+        // ✨ 累積統計值
+        totalComboCount += comboCount;
+        for (const QString& key : ncarMap.keys()) {
+            totalNcarMap[key] += ncarMap[key];
+        }
+
+        QTimer::singleShot(300, this, [=]() {
+            clearMatchedGems();
+            dropGems();
+
+            QTimer::singleShot(300, this, [=]() {
+                refillGems();
+
+                QTimer::singleShot(400, this, [=]() {
+                    resolveComboCycle();  // 🔁 再次檢查 combo
+                });
+            });
+        });
+    } else {
+        isComboResolving = false;  // ✅ 標示 cycle 結束
+        emit comboResolved(totalComboCount, totalNcarMap);  // ✅ 只 emit 一次累積結果
     }
 }

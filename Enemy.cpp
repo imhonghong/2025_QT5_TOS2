@@ -152,6 +152,13 @@ void Enemy::applySkill_ID5(GemAreaWidget* gemArea)
     }
 }
 
+void Enemy::onEnterWave(GemAreaWidget* gemArea)
+{
+    if (id == 5) {
+        applySkill_ID5(gemArea);  // ← 入場觸發
+    }
+}
+
 void Enemy::applySkill_ID7(GemAreaWidget* gemArea)
 {
     if (id == 7 && currentHp > 0 && gemArea) {

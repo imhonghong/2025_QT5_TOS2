@@ -78,18 +78,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(gameStage->getGemArea(), &GemAreaWidget::comboResolved,
             gameStage, &GameStageWidget::handleComboResolved);
 
-    connect(gameStage->getGemArea(), &GemAreaWidget::comboFullyResolved, this, [=]() {
-        // ✅ 呼叫正確的 player 指標
-        Player* player = gameStage->getPlayer();
-        if (player) {
-            player->processEnemyTurn(gameStage->getCurrentEnemies());
-        }
-
-        // ✅ 呼叫你自己寫好的 checkAllEnemiesDefeated()
-        if (gameStage->checkAllEnemiesDefeated()) {
-            emit gameStage->wavePass();
-        }
-    });
 }
 
 void MainWindow::switchToPrepareStage() {

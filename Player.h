@@ -3,6 +3,7 @@
 #include <QVector>
 #include <QTimer>
 #include <QProgressBar>
+#include <QPropertyAnimation>
 #include "Hero.h"
 
 class Enemy;
@@ -47,6 +48,7 @@ signals:
     void moveTimeUp();                      // 倒數結束
     void hpChanged(int current, int max);  // 血量改變
     void attackFinished(); // hero attack enemy
+    void playerDead();
 
 private slots:
     void onMoveTimerTimeout();
@@ -60,7 +62,9 @@ private:
     QTimer* moveTimer;
     int moveTime;
     bool hasStartedMove = false; //只轉珠一次的防呆
+    bool isMoving = false;  // 是否處於轉珠狀態
     double currentTimeValue = 10.0;
 
     GemAreaWidget* gemArea = nullptr;
+    QPropertyAnimation* timerAnim = nullptr;
 };

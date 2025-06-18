@@ -28,6 +28,10 @@ public:
     void setEnemies(const QVector<Enemy*>& es) { enemies = es; };
 
     int getComboCount() const;
+
+    int getTotalComboCount() const { return totalComboCount; }
+    QMap<QString, int> getTotalNcarMap() const { return totalNcarMap; }
+
     bool checkAndMarkCombo();
     void dfsCombo(int r, int c, const QString& attr,
                   const QSet<QPair<int, int>>& candidates,
@@ -45,6 +49,7 @@ signals:
     void dragFinished();  // 玩家主動結束轉珠
     void comboResolved(int comboCount, QMap<QString, int> ncarMap); //把combo傳給mainwindow
     void comboFullyResolved();  // combo 結束、攻擊結束後通知主控
+    void showBurnDamage(); // 顯示燃燒符石傷害
 
 public slots:
     void forceStopDragging();  // 給 Player 呼叫，強制停止拖曳

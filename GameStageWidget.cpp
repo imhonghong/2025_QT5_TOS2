@@ -89,7 +89,10 @@ GameStageWidget::GameStageWidget(QWidget *parent)
     });
 
     connect(gemArea, &GemAreaWidget::dragFinished, this, [=]() {
-        if (player) player->stopMoveTimer();
+        qDebug() << "[GameStage] drag finished — manual stop";
+        if (player) {
+            player->stopMoveTimer();
+        }
         qDebug() << "[GameStage] drag finished — calling combo check";
         gemArea->resolveComboCycle();
     });
@@ -97,8 +100,23 @@ GameStageWidget::GameStageWidget(QWidget *parent)
     connect(player, &Player::attackFinished, this, [=]() {
         qDebug() << "[GameStage] All heroes attacked — check enemies";
         checkAllEnemiesDefeated(true);  // ✅ 明確觸發下一關判斷
+        if (!checkAllEnemiesDefeated(false)) {
+                player->processEnemyTurn(enemies);
+            }
     });
 
+    connect(gemArea, &GemAreaWidget::showBurnDamage, this, [=]() {
+        burnDamageLabel->setText("-30");
+        burnDamageLabel->show();
+        QTimer::singleShot(400, this, [=]() {
+            burnDamageLabel->hide();
+        });
+    });
+
+    connect(player, &Player::playerDead, this, [=]() {
+        qDebug() << "[GameStage] Detected player death — emit gameFail()";
+        emit gameFail();  // ✅ 傳給 MainWindow 觸發畫面切換
+    });
 }
 
 void GameStageWidget::setup(const QVector<Hero*>& heroes, int mission)
@@ -153,6 +171,13 @@ void GameStageWidget::setup(const QVector<Hero*>& heroes, int mission)
     recoveryLabel->move((560-100)/2, 960-450-50);  // 可視 UI 調整
     recoveryLabel->setAlignment(Qt::AlignCenter);
     recoveryLabel->hide();
+
+    burnDamageLabel = new QLabel(this);
+    burnDamageLabel->setStyleSheet("QLabel { color: red; font-size: 24px; font-weight: bold; }");
+    burnDamageLabel->setFixedSize(100, 50);
+    burnDamageLabel->move((560-100)/2, 960-450-50);  // 距離回血顯示右側一點
+    burnDamageLabel->setAlignment(Qt::AlignCenter);
+    burnDamageLabel->hide();
 }
 
 void GameStageWidget::initWaves(int mission)
@@ -181,11 +206,6 @@ void GameStageWidget::showWave(int wave_idx)
 
     // 將此 wave 的敵人逐一顯示
     for (Enemy* enemy : waves[wave_idx]) {
-
-        if (enemy && enemy->id == 5) {
-            enemy->applySkill_ID5(gemArea);
-        }
-
         QWidget* enemyWidget = enemy->createEnemyWidget(this);
             if (wave_idx==2) enemyLayout->addStretch(); //wave2 自動加空格
             enemyLayout->addWidget(enemyWidget, 0, Qt::AlignVCenter);

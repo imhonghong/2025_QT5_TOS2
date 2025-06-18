@@ -64,5 +64,6 @@ private:
     QLabel* comboLabel;
     QWidget* comboOverlay;
     QLabel* recoveryLabel = nullptr;
+    QLabel* burnDamageLabel = nullptr;
 
 };

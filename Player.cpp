@@ -44,6 +44,11 @@ void Player::takeDamage(int dmg)
     if (currentHp < 0) currentHp = 0;
     updateHpBar();
     emit hpChanged(currentHp, maxHp);
+
+    if (currentHp <= 0) {
+        qDebug() << "[Player] HP dropped to 0 — emit playerDead";
+        emit playerDead();
+    }
 }
 
 bool Player::isDead() const
@@ -53,11 +58,28 @@ bool Player::isDead() const
 
 void Player::updateHpBar()
 {
-    if (hpBar) {
+    if (!hpBar) return;
+
+    if (!isMoving) {
+        // ✅ 只有非轉珠時才更新條的長度
         hpBar->setRange(0, maxHp);
         hpBar->setValue(currentHp);
-        hpBar->setFormat("HP: %v / %m");
+
+        // 顏色條件可自選（保持舊邏輯也行）
+        int percent = (currentHp * 100) / maxHp;
+        QString color;
+        if (percent >= 70) color = "green";
+        else if (percent >= 30) color = "orange";
+        else color = "red";
+
+        hpBar->setStyleSheet(
+            "QProgressBar { background-color: saddlebrown; border: 1px solid black; }"
+            "QProgressBar::chunk { background-color: " + color + "; }"
+        );
     }
+
+    // ✅ 無論是否在轉珠，文字永遠更新
+    hpBar->setFormat(QString("HP: %1 / %2").arg(currentHp).arg(maxHp));
 }
 
 void Player::showAsHp()
@@ -73,11 +95,14 @@ void Player::showAsHp()
 void Player::startMoveTimer()
 {
     if (!hpBar || moveTimer->isActive()) return;
-
+    isMoving = true;  // ✅ 進入轉珠狀態
     showAsTimer();
     currentTimeValue = moveTime;  // reset
-    hpBar->setRange(0, moveTime * 10);   // 100 steps for smoothness
-    hpBar->setValue(currentTimeValue * 10);
+    // ✅ 初始化條件：進度條 0~100
+    hpBar->setRange(0, 100);
+    int percent = static_cast<int>((currentTimeValue / moveTime) * 100);
+    hpBar->setValue(percent);
+    hpBar->setFormat(QString("HP: %1 / %2").arg(currentHp).arg(maxHp));  // 血量數字
 
     moveTimer->start(100);  // 100 ms
 }
@@ -86,8 +111,6 @@ void Player::showAsTimer()
 {
     if (!hpBar) return;
     hpBar->setRange(0, moveTime);
-    hpBar->setValue(moveTime);
-    hpBar->setFormat("");
 
     // 仍用粉紅色 + 棕色背景
     hpBar->setStyleSheet(
@@ -99,8 +122,12 @@ void Player::showAsTimer()
 void Player::stopMoveTimer()
 {
     moveTimer->stop();
+    isMoving = false;  // ✅ 回復一般狀態
     emit moveTimeUp();  // 🔔 倒數結束，發出通知
     showAsHp();
+    updateHpBar();
+    if (timerAnim && timerAnim->state() == QAbstractAnimation::Running)
+        timerAnim->stop();
 }
 
 void Player::onMoveTimerTimeout()
@@ -115,7 +142,20 @@ void Player::onMoveTimerTimeout()
         showAsHp();
         updateHpBar();
     } else {
-        hpBar->setValue(static_cast<int>(currentTimeValue * 10));
+        int newValue = static_cast<int>((currentTimeValue / moveTime) * 100);
+
+        // ✅ 使用動畫平滑設定進度條值
+        if (!timerAnim) {
+            timerAnim = new QPropertyAnimation(hpBar, "value", this);
+            timerAnim->setDuration(80);  // 平滑時長
+            timerAnim->setEasingCurve(QEasingCurve::Linear);
+        }
+        timerAnim->stop();
+        timerAnim->setStartValue(hpBar->value());
+        timerAnim->setEndValue(newValue);
+        timerAnim->start();
+
+        hpBar->setFormat(QString("HP: %1 / %2").arg(currentHp).arg(maxHp));  // 保留血量文字
     }
 }
 
@@ -134,9 +174,7 @@ void Player::processEnemyTurn(const QVector<Enemy*>& enemies)
 
     for (Enemy* e : enemies) {
         if (!e || e->currentHp <=0 ) continue;  // ✅ 死亡敵人不做任何事
-        if (e) {
-                e->applySkill_ID5(gemArea);  // 每隻敵人每回合都可施放技能
-            }
+
         e->cd--;
         if (e->cd <= 0) {
             takeDamage(e->atk);
@@ -144,6 +182,9 @@ void Player::processEnemyTurn(const QVector<Enemy*>& enemies)
         }
         e->updateCdLabel();
         qDebug() << "[Player] enemy" << e->id << "CD now:" << e->cd;
+        if (e) {
+            e->applySkill_ID5(gemArea);  // 每隻敵人每回合都可施放技能
+        }
     }
 }
 
@@ -226,7 +267,7 @@ void Player::attackSequentially(QVector<Enemy*> enemies,
                                 QVector<Hero*> heroesToAttack,
                                 int index)
 {
-    if (index >= heroesToAttack.size()) {  // 所有英雄已出手完畢
+    if (index >= heroesToAttack.size()) {  // 所有英雄出手完畢
         emit attackFinished();
         return;
     }
@@ -250,7 +291,7 @@ void Player::attackSequentially(QVector<Enemy*> enemies,
     }
     if (aliveEnemies.isEmpty()) {
         QTimer::singleShot(300, this, [=]() {
-            emit attackFinished();  // ✅ 一定要發出
+            emit attackFinished();
         });
         return;
     }

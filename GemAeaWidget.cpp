@@ -117,6 +117,7 @@ void GemAreaWidget::mouseMoveEvent(QMouseEvent* event)
         if (currentGem->getState() == "Burning") {
                 if (player) {
                     player->takeDamage(30);
+                    emit showBurnDamage();
                 }
             }
 
@@ -141,7 +142,7 @@ void GemAreaWidget::mouseReleaseEvent(QMouseEvent* /*event*/)
     if (!isComboResolving)
             resolveComboCycle();
 
-    qDebug() << "[GemArea] Drag ended. Passed through:" << passedCells;
+    // qDebug() << "[GemArea] Drag ended. Passed through:" << passedCells;
 }
 
 void GemAreaWidget::swapGems(QPoint a, QPoint b)

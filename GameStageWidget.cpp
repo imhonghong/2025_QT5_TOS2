@@ -184,7 +184,9 @@ void GameStageWidget::showWave(int wave_idx)
         }
 
         QWidget* enemyWidget = enemy->createEnemyWidget(this);
-        enemyLayout->addWidget(enemyWidget, 0, Qt::AlignVCenter);
+            if (wave_idx==2) enemyLayout->addStretch(); //wave2 自動加空格
+            enemyLayout->addWidget(enemyWidget, 0, Qt::AlignVCenter);
+            if (wave_idx==2) enemyLayout->addStretch();
     }
 }
 

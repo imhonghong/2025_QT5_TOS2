@@ -140,6 +140,7 @@ GameStageWidget::GameStageWidget(QWidget *parent)
                 recoveryLabel->hide();
             });
         }
+        gemArea->deleteMarkedGems();
     });
     connect(player, &Player::attackFinished, this, [=]() {
         qDebug() << "[GameStage] All heroes attacked — check enemies";

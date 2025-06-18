@@ -170,6 +170,32 @@ void GemAreaWidget::forceStopDragging()
     qDebug() << "[GemArea] Force stopped dragging due to timeout.";
 }
 
+void GemAreaWidget::markGemForDelete(Gem* gem)
+{
+    if (gem && !gemsToDelete.contains(gem)) {
+        gemsToDelete.append(gem);
+    }
+}
+
+void GemAreaWidget::deleteMarkedGems()
+{
+    for (Gem* g : gemsToDelete) {
+        if (!g) continue;
+        for (int i = 0; i < ROWS; ++i) {
+            for (int j = 0; j < COLS; ++j) {
+                if (gemGrid[i][j] == g) {
+                    gemGrid[i][j] = nullptr;
+                    break;
+                }
+            }
+        }
+        g->deleteLater();
+    }
+    gemsToDelete.clear();
+    qDebug() << "[GemArea] deleteMarkedGems";
+}
+
+
 void GemAreaWidget::finishDragging() {
 
     releaseMouse();
@@ -310,6 +336,7 @@ void GemAreaWidget::clearMatchedGems()
             Gem* gem = gemGrid[row][col];
             if (gem && gem->getState() == "Clearing") {
                 gem->hide();  // ✅ 隱藏視覺
+                markGemForDelete(gemGrid[row][col]);
                 gem->setState("Normal");  // ✅ 重設狀態（以便 drop/reuse）
                 gemGrid[row][col] = nullptr;  // ✅ 標示該格為空，方便 dropGems 使用
             }

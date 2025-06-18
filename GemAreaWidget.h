@@ -44,6 +44,9 @@ public:
     void clearAllBurningGems();
 
     void finishDragging();
+    void deleteMarkedGems();
+
+
 
 signals:
     void dragStarted(); // 發出訊號給 player
@@ -81,6 +84,9 @@ private:
 
     Player* player = nullptr;
     QVector<Enemy*> enemies;
+
+    QList<Gem*> gemsToDelete;
+    void markGemForDelete(Gem* gem);
 
 
     int comboCount;

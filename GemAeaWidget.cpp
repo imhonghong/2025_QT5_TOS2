@@ -113,6 +113,20 @@ void GemAreaWidget::mouseMoveEvent(QMouseEvent* event)
         swapGems(last, currentIndex);
         // qDebug() << "[GemArea] Swapping" << last << "<->" << currentIndex;
         passedCells.append(currentIndex);
+
+        if (currentGem->getState() == "Burning") {
+                if (player) {
+                    player->takeDamage(30);
+                }
+            }
+
+    }
+
+    for (Enemy* e : enemies) {
+        if (e && e->currentHp > 0 && e->id == 7) {
+            e->applySkill_ID7(this);
+            break;
+        }
     }
 
 }
@@ -122,6 +136,7 @@ void GemAreaWidget::mouseReleaseEvent(QMouseEvent* /*event*/)
     if (!isDragging) return;
         isDragging = false;
     releaseMouse();
+    clearAllBurningGems();
     emit dragFinished();
     if (!isComboResolving)
             resolveComboCycle();
@@ -171,6 +186,7 @@ void GemAreaWidget::forceStopDragging()
         isDragging = false;
 
     releaseMouse();
+    clearAllBurningGems();
     resolveComboCycle();
 
     qDebug() << "[GemArea] Force stopped dragging due to timeout.";
@@ -419,4 +435,17 @@ void GemAreaWidget::resolveComboCycle()
         emit comboFullyResolved();  // ✅ 僅這裡 emit
     }
 
+}
+
+void GemAreaWidget::clearAllBurningGems()
+{
+    for (int r = 0; r < ROWS; ++r) {
+        for (int c = 0; c < COLS; ++c) {
+            Gem* g = gemGrid[r][c];
+            if (g && g->getState() == "Burning") {
+                g->setState("Normal");
+            }
+        }
+    }
+    qDebug() << "[GemArea] All burning gems cleared.";
 }

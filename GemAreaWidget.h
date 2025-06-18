@@ -4,6 +4,7 @@
 #include <QVector>
 #include "Gem.h"
 #include "Player.h"
+#include "Enemy.h"
 #include <QMap>
 
 
@@ -22,6 +23,10 @@ public:
 
     QMap<QString, int> getNcarMap() const;
     Gem* getGem(int row, int col) const { return gemGrid[row][col]; };
+    QVector<QPoint> getPassedCells() const { return passedCells; };
+    QVector<Enemy*> getEnemies() const { return enemies; }
+    void setEnemies(const QVector<Enemy*>& es) { enemies = es; };
+
     int getComboCount() const;
     bool checkAndMarkCombo();
     void dfsCombo(int r, int c, const QString& attr,
@@ -32,6 +37,8 @@ public:
     void dropGems();
     void refillGems();
     void resolveComboCycle();
+
+    void clearAllBurningGems();
 
 signals:
     void dragStarted(); // 發出訊號給 player
@@ -66,6 +73,8 @@ private:
     void swapGems(QPoint a, QPoint b);
 
     Player* player = nullptr;
+    QVector<Enemy*> enemies;
+
 
     int comboCount;
     QMap<QString, int> ncarMap;

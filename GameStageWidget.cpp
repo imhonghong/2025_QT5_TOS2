@@ -176,6 +176,9 @@ void GameStageWidget::showWave(int wave_idx)
         delete child;
     }
     enemies = waves[wave_idx];
+
+    gemArea->setEnemies(enemies);
+
     // 將此 wave 的敵人逐一顯示
     for (Enemy* enemy : waves[wave_idx]) {
 

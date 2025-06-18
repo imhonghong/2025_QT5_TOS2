@@ -151,3 +151,18 @@ void Enemy::applySkill_ID5(GemAreaWidget* gemArea)
         qDebug() << "[Enemy] ID 5 skill: Set 2 gems to Weathered";
     }
 }
+
+void Enemy::applySkill_ID7(GemAreaWidget* gemArea)
+{
+    if (id == 7 && currentHp > 0 && gemArea) {
+        for (const QPoint& pt : gemArea->getPassedCells()) {
+            int row = pt.x();
+            int col = pt.y();
+            Gem* g = gemArea->getGem(row, col);
+            if (g && g->getState() == "Normal") {
+                g->setState("Burning");
+            }
+        }
+        qDebug() << "[Enemy] ID 7 skill: Set burning gems along path.";
+    }
+}

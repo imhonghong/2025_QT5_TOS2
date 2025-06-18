@@ -28,6 +28,7 @@ public:
     QLabel* cdLabel = nullptr;
 
     void applySkill_ID5(GemAreaWidget* gemArea);  // ID=5 weather stone
+    void applySkill_ID7(GemAreaWidget* gemArea);  // ID=7 burning stone
 
     static QVector<Enemy*> createWave(int waveID);
     QWidget* createEnemyWidget(QWidget *parent = nullptr);

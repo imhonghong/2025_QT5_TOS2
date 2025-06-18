@@ -44,11 +44,14 @@ public:
 
     void clearAllBurningGems();
 
+    void finishDragging();
+
 signals:
     void dragStarted(); // 發出訊號給 player
     void dragFinished();  // 玩家主動結束轉珠
     void comboResolved(int comboCount, QMap<QString, int> ncarMap); //把combo傳給mainwindow
     void comboFullyResolved();  // combo 結束、攻擊結束後通知主控
+    void comboStepResolved(int comboStepCount); //階段性combo
     void showBurnDamage(); // 顯示燃燒符石傷害
 
 public slots:

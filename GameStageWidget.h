@@ -28,7 +28,8 @@ public:
     bool isWaveTransitioning = false;
 
 public slots:
-    void handleComboResolved(int combo, QMap<QString, int> ncarMap);
+    // void handleComboResolved(int combo, QMap<QString, int> ncarMap);
+    void showComboStepAnimation(int combo);
 
 signals:
     void pauseGame();

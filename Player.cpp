@@ -24,18 +24,22 @@ void Player::reset()
     showAsHp();
 }
 
-void Player::bindHpBar(QProgressBar *bar)
+void Player::bindHpBar(QProgressBar* bar, QLabel* label)
 {
     hpBar = bar;
+    hpTextLabel = label;
+
     if (!hpBar) return;
+
     hpBar->setRange(0, maxHp);
     hpBar->setValue(currentHp);
-    hpBar->setFormat("HP: %v / %m");
-    hpBar->setTextVisible(true);
-    hpBar->setStyleSheet(
-        "QProgressBar { background-color: saddlebrown; border: 1px solid black; }"
-        "QProgressBar::chunk { background-color: pink; }"
-    );
+    hpBar->setTextVisible(false);  // 由文字控件顯示
+
+    // 若 label 存在，顯示數字
+    if (hpTextLabel) {
+        hpTextLabel->setText(QString("HP: %1 / %2").arg(currentHp).arg(maxHp));
+        hpTextLabel->show();
+    }
 }
 
 void Player::takeDamage(int dmg)
@@ -44,7 +48,9 @@ void Player::takeDamage(int dmg)
     if (currentHp < 0) currentHp = 0;
     updateHpBar();
     emit hpChanged(currentHp, maxHp);
-
+    if (hpTextLabel) {
+        hpTextLabel->setText(QString("HP: %1 / %2").arg(currentHp).arg(maxHp));
+    }
     if (currentHp <= 0) {
         qDebug() << "[Player] HP dropped to 0 — emit playerDead";
         emit playerDead();
@@ -68,18 +74,22 @@ void Player::updateHpBar()
         // 顏色條件可自選（保持舊邏輯也行）
         int percent = (currentHp * 100) / maxHp;
         QString color;
-        if (percent >= 70) color = "green";
-        else if (percent >= 30) color = "orange";
-        else color = "red";
+        if (percent >= 0) color = "pink";
+        // else if (percent >= 30) color = "orange";
+        //else color = "red";
 
         hpBar->setStyleSheet(
             "QProgressBar { background-color: saddlebrown; border: 1px solid black; }"
             "QProgressBar::chunk { background-color: " + color + "; }"
         );
+        if (hpTextLabel) {
+            hpTextLabel->setText(QString("HP: %1 / %2").arg(currentHp).arg(maxHp));
+        }
     }
 
     // ✅ 無論是否在轉珠，文字永遠更新
     hpBar->setFormat(QString("HP: %1 / %2").arg(currentHp).arg(maxHp));
+    hpBar->setAlignment(Qt::AlignRight);
 }
 
 void Player::showAsHp()
@@ -171,28 +181,49 @@ const QVector<Hero*>& Player::getHeroTeam() const
 
 void Player::processEnemyTurn(const QVector<Enemy*>& enemies)
 {
+    processEnemyTurnSequentially(enemies, 0);  // ✅ 開始第一隻
+}
 
-    for (Enemy* e : enemies) {
-        if (!e || e->currentHp <=0 ) continue;  // ✅ 死亡敵人不做任何事
-
-        e->cd--;
-        if (e->cd <= 0) {
-            takeDamage(e->atk);
-            e->cd = e->originalCd;
-        }
-        e->updateCdLabel();
-        qDebug() << "[Player] enemy" << e->id << "CD now:" << e->cd;
-        if (e) {
-            e->applySkill_ID5(gemArea);  // 每隻敵人每回合都可施放技能
-        }
+void Player::processEnemyTurnSequentially(const QVector<Enemy*>& enemies, int index)
+{
+    if (index >= enemies.size()) {
+        emit enemyAttackFinished();  // ✅ 最後才 emit 回合結束
+        return;
     }
+
+    Enemy* e = enemies[index];
+    if (!e || e->currentHp <= 0) {
+        processEnemyTurnSequentially(enemies, index + 1);  // skip
+        return;
+    }
+
+    e->cd--;
+
+    bool willAttack = false;
+    if (e->cd <= 0) {
+        willAttack = true;
+        takeDamage(e->atk);
+        e->cd = e->originalCd;
+    }
+
+    e->updateCdLabel();
+
+    // 技能觸發條件仍保留
+    if (e->id == 5 && e->currentHp > 0) {
+        e->applySkill_ID5(gemArea);
+    }
+
+    // 等待動畫延遲後進入下一隻敵人
+    QTimer::singleShot(300, [=]() {
+        processEnemyTurnSequentially(enemies, index + 1);
+    });
 }
 
 void Player::attackAllEnemies(QVector<Enemy*>& enemies,
                               int combo, const QMap<QString, int>& ncarPerAttr)
 {
     qDebug() << "[Player] attackAllEnemies called. Combo =" << combo;
-    qDebug() << "[Player] Hero count =" << heroes.size();
+    // qDebug() << "[Player] Hero count =" << heroes.size();
 
     // 1. AC 表
     QMap<QString, QMap<QString, double>> acTable;
@@ -235,6 +266,7 @@ void Player::attackAllEnemies(QVector<Enemy*>& enemies,
         }
     }
     // 4. 循序攻擊敵人
+    hasEmittedAttackFinished = false;
     attackSequentially(enemies, totalDamage, acTable, heroes, 0);
 }
 
@@ -268,20 +300,27 @@ void Player::attackSequentially(QVector<Enemy*> enemies,
                                 int index)
 {
     if (index >= heroesToAttack.size()) {  // 所有英雄出手完畢
-        emit attackFinished();
+        if (!hasEmittedAttackFinished) {
+            hasEmittedAttackFinished = true;
+            emit attackFinished();
+        }
         return;
     }
 
     Hero* h = heroesToAttack[index];
     if (!h) {
-        attackSequentially(enemies, totalDamage, acTable, heroesToAttack, index + 1);
+        QTimer::singleShot(150, this, [=]() {
+            attackSequentially(enemies, totalDamage, acTable, heroesToAttack, index + 1);
+        });
         return;
     }
 
     QString attr = h->attr;
     double damage = totalDamage.value(attr, 0);
     if (damage <= 0) {
-        attackSequentially(enemies, totalDamage, acTable, heroesToAttack, index + 1);
+        QTimer::singleShot(150, this, [=]() {
+            attackSequentially(enemies, totalDamage, acTable, heroesToAttack, index + 1);
+        });
         return;
     }
 
@@ -289,9 +328,13 @@ void Player::attackSequentially(QVector<Enemy*> enemies,
     for (Enemy* e : enemies) {
         if (e && e->currentHp > 0) aliveEnemies.append(e);
     }
+
     if (aliveEnemies.isEmpty()) {
         QTimer::singleShot(300, this, [=]() {
-            emit attackFinished();
+            if (!hasEmittedAttackFinished) {
+                hasEmittedAttackFinished = true;
+                emit attackFinished();
+            }
         });
         return;
     }
@@ -299,7 +342,6 @@ void Player::attackSequentially(QVector<Enemy*> enemies,
     Enemy* target = aliveEnemies[QRandomGenerator::global()->bounded(aliveEnemies.size())];
     double ac = acTable[attr].value(target->attr, 1.0);
     int finalDmg = static_cast<int>(damage * ac + 0.5);
-
     target->takeDamage(finalDmg);
 
     // 🔥 顯示動畫（依屬性上色）
@@ -337,3 +379,4 @@ void Player::attackSequentially(QVector<Enemy*> enemies,
         attackSequentially(enemies, totalDamage, acTable, heroesToAttack, index + 1);
     });
 }
+

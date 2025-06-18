@@ -35,4 +35,7 @@
         <file>data/hero/ID4.png</file>
         <file>data/hero/ID5.png</file>
     </qresource>
+    <qresource prefix="/bullet">
+        <file>data/bullet.png</file>
+    </qresource>
 </RCC>

@@ -64,12 +64,24 @@ GameStageWidget::GameStageWidget(QWidget *parent)
 
     QProgressBar* hpBar = new QProgressBar(this);
     hpBar->setFixedSize(530, 40);
-    hpBar->setTextVisible(true);
+    hpBar->setTextVisible(false);
     mainLayout->addWidget(hpBar, 0, Qt::AlignHCenter);
+
+    // 1. 新增 label，讓它浮在進度條上
+    QLabel* hpTextLabel = new QLabel(hpBar);
+    hpTextLabel->setStyleSheet("color: white; background-color: transparent;");
+    QFont font;
+    font.setPointSize(12);
+    font.setBold(true);
+    hpTextLabel->setFont(font);
+    hpTextLabel->setAlignment(Qt::AlignRight);
+    hpTextLabel->resize(250, 30);
+    hpTextLabel->move(hpBar->width() - 250, 5);  // 靠右，向下微移
+    hpTextLabel->show();
 
     // 綁定 player 與初始化
     player = new Player(this);
-    player->bindHpBar(hpBar);
+    player->bindHpBar(hpBar, hpTextLabel);
     player->reset();
 
     // 符石區
@@ -97,14 +109,6 @@ GameStageWidget::GameStageWidget(QWidget *parent)
         gemArea->resolveComboCycle();
     });
 
-    connect(player, &Player::attackFinished, this, [=]() {
-        qDebug() << "[GameStage] All heroes attacked — check enemies";
-        checkAllEnemiesDefeated(true);  // ✅ 明確觸發下一關判斷
-        if (!checkAllEnemiesDefeated(false)) {
-                player->processEnemyTurn(enemies);
-            }
-    });
-
     connect(gemArea, &GemAreaWidget::showBurnDamage, this, [=]() {
         burnDamageLabel->setText("-30");
         burnDamageLabel->show();
@@ -117,6 +121,35 @@ GameStageWidget::GameStageWidget(QWidget *parent)
         qDebug() << "[GameStage] Detected player death — emit gameFail()";
         emit gameFail();  // ✅ 傳給 MainWindow 觸發畫面切換
     });
+
+    connect(player, &Player::enemyAttackFinished, this, [=]() {
+        qDebug() << "[GameStage] All enemies attacked — check game state";
+        if (checkAllEnemiesDefeated(true)) { return; }
+    });
+
+    connect(gemArea, &GemAreaWidget::comboFullyResolved, this, [=]() {
+        int combo = gemArea->getTotalComboCount();
+        QMap<QString, int> ncarMap = gemArea->getTotalNcarMap();
+        player->attackAllEnemies(enemies, combo, ncarMap);
+        player->recoverHp(combo, ncarMap.value("Heart", 0));
+        int recovery = combo * ncarMap.value("Heart", 0) * 5;
+        recoveryLabel->setText(QString("+%1").arg(recovery));
+        if (recovery !=0 ){
+            recoveryLabel->show();
+            QTimer::singleShot(1000, this, [=]() {
+                recoveryLabel->hide();
+            });
+        }
+    });
+    connect(player, &Player::attackFinished, this, [=]() {
+        qDebug() << "[GameStage] All heroes attacked — check enemies";
+        if (checkAllEnemiesDefeated(true)) return;
+        player->processEnemyTurn(enemies);
+    });
+
+    connect(gemArea, &GemAreaWidget::comboStepResolved, this,
+            &GameStageWidget::showComboStepAnimation);
+
 }
 
 void GameStageWidget::setup(const QVector<Hero*>& heroes, int mission)
@@ -207,9 +240,14 @@ void GameStageWidget::showWave(int wave_idx)
     // 將此 wave 的敵人逐一顯示
     for (Enemy* enemy : waves[wave_idx]) {
         QWidget* enemyWidget = enemy->createEnemyWidget(this);
-            if (wave_idx==2) enemyLayout->addStretch(); //wave2 自動加空格
-            enemyLayout->addWidget(enemyWidget, 0, Qt::AlignVCenter);
-            if (wave_idx==2) enemyLayout->addStretch();
+
+        if (enemy && enemy->id == 5 && wave_idx == 1) {
+            enemy->applySkill_ID5(gemArea);  // ✅ 一進場施放
+        }
+
+        if (wave_idx==2) enemyLayout->addStretch(); //wave2 自動加空格
+        enemyLayout->addWidget(enemyWidget, 0, Qt::AlignVCenter);
+        if (wave_idx==2) enemyLayout->addStretch();
     }
 }
 
@@ -237,7 +275,7 @@ bool GameStageWidget::checkAllEnemiesDefeated(bool emitIfPassed)
     return true;
 }
 
-void GameStageWidget::handleComboResolved(int combo, QMap<QString, int> ncarMap)
+void GameStageWidget::showComboStepAnimation(int combo)
 {
     if (combo > 0) {
         comboOverlay->show();
@@ -259,7 +297,7 @@ void GameStageWidget::handleComboResolved(int combo, QMap<QString, int> ncarMap)
         comboLabel->setGraphicsEffect(effect);
 
         QPropertyAnimation* fadeAnim = new QPropertyAnimation(effect, "opacity");
-        fadeAnim->setDuration(1000);
+        fadeAnim->setDuration(800);
         fadeAnim->setStartValue(1.0);
         fadeAnim->setEndValue(0.0);
 
@@ -269,19 +307,6 @@ void GameStageWidget::handleComboResolved(int combo, QMap<QString, int> ncarMap)
         connect(fadeAnim, &QPropertyAnimation::finished, this, [=]() {
             comboLabel->hide();
             comboOverlay->hide();
-
-            QTimer::singleShot(300, this, [=]() {
-                    player->attackAllEnemies(enemies, combo, ncarMap);
-                });
-            player->recoverHp(combo, ncarMap.value("Heart", 0));
-            int recovery = combo * ncarMap.value("Heart", 0) * 5;
-            recoveryLabel->setText(QString("+%1").arg(recovery));
-            if (recovery !=0 ){
-                recoveryLabel->show();
-                QTimer::singleShot(1000, this, [=]() {
-                    recoveryLabel->hide();
-                });
-            }
         });
     }
 }

@@ -104,7 +104,7 @@ void GemAreaWidget::mouseMoveEvent(QMouseEvent* event)
         }
 
         forceStopDragging();
-        emit dragFinished();
+        // emit dragFinished();
         return;
     }
 
@@ -136,12 +136,7 @@ void GemAreaWidget::mouseReleaseEvent(QMouseEvent* /*event*/)
 {
     if (!isDragging) return;
         isDragging = false;
-    releaseMouse();
-    clearAllBurningGems();
-    emit dragFinished();
-    if (!isComboResolving)
-            resolveComboCycle();
-
+    finishDragging();
     // qDebug() << "[GemArea] Drag ended. Passed through:" << passedCells;
 }
 
@@ -159,12 +154,12 @@ void GemAreaWidget::swapGems(QPoint a, QPoint b)
     QPoint posB(colB * GEM_SIZE, rowB * GEM_SIZE);
 
     QPropertyAnimation* animA = new QPropertyAnimation(gemA, "pos");
-    animA->setDuration(80);
+    animA->setDuration(60);
     animA->setEndValue(posA);
     animA->start(QAbstractAnimation::DeleteWhenStopped);
 
     QPropertyAnimation* animB = new QPropertyAnimation(gemB, "pos");
-    animB->setDuration(80);
+    animB->setDuration(60);
     animB->setEndValue(posB);
     animB->start(QAbstractAnimation::DeleteWhenStopped);
 }
@@ -176,21 +171,25 @@ QMap<QString, int> GemAreaWidget::getNcarMap() const
     return map;
 }
 
-int GemAreaWidget::getComboCount() const
-{
-    return 0; // TODO: implement combo logic
-}
 
 void GemAreaWidget::forceStopDragging()
 {
     if (!isDragging) return;     // ✅ 避免重複
         isDragging = false;
+    finishDragging();
+    qDebug() << "[GemArea] Force stopped dragging due to timeout.";
+}
+
+void GemAreaWidget::finishDragging() {
 
     releaseMouse();
+    isDragging = false;
     clearAllBurningGems();
+    if (player) {
+        player->stopMoveTimer();  // ✅ 主動放手也會切換顯示
+    }
     resolveComboCycle();
 
-    qDebug() << "[GemArea] Force stopped dragging due to timeout.";
 }
 
 void GemAreaWidget::setPlayer(Player* p)
@@ -332,7 +331,7 @@ void GemAreaWidget::clearMatchedGems()
 
 void GemAreaWidget::dropGems()
 {
-    const int dropDuration = 150;
+    const int dropDuration = 80;
 
     for (int col = 0; col < COLS; ++col) {
         for (int row = ROWS - 1; row >= 0; --row) {
@@ -408,11 +407,13 @@ void GemAreaWidget::resolveComboCycle()
         totalComboCount = 0;
         totalNcarMap.clear();
         isComboResolving = true;
+        comboCycleFinished = false;
     }
 
     if (checkAndMarkCombo()) {
         // ✨ 累積統計值
         totalComboCount += comboCount;
+        emit comboStepResolved(totalComboCount);
         for (const QString& key : ncarMap.keys()) {
             totalNcarMap[key] += ncarMap[key];
         }

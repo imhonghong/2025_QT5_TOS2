@@ -4,6 +4,7 @@
 #include <QTimer>
 #include <QProgressBar>
 #include <QPropertyAnimation>
+#include <QLabel>
 #include "Hero.h"
 
 class Enemy;
@@ -16,7 +17,8 @@ public:
     explicit Player(QObject *parent = nullptr);
 
     void reset();
-    void bindHpBar(QProgressBar *bar);
+
+    void bindHpBar(QProgressBar* bar, QLabel* label = nullptr);
     void updateHpBar();
     void takeDamage(int dmg);
     bool isDead() const;
@@ -29,6 +31,9 @@ public:
     const QVector<Hero*>& getHeroTeam() const;
 
     void processEnemyTurn(const QVector<Enemy*>& enemies);
+
+    void processEnemyTurnSequentially(const QVector<Enemy*>& enemies,
+                                      int index);  // helper function if enemy attack
 
     void attackAllEnemies(QVector<Enemy*>& enemies, int combo,
                           const QMap<QString, int>& ncarPerAttr);
@@ -48,6 +53,7 @@ signals:
     void moveTimeUp();                      // 倒數結束
     void hpChanged(int current, int max);  // 血量改變
     void attackFinished(); // hero attack enemy
+    void enemyAttackFinished(); //enemy attack hero
     void playerDead();
 
 private slots:
@@ -67,4 +73,7 @@ private:
 
     GemAreaWidget* gemArea = nullptr;
     QPropertyAnimation* timerAnim = nullptr;
+    QLabel* hpTextLabel = nullptr;
+
+    bool hasEmittedAttackFinished = false;
 };

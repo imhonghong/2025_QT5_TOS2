@@ -75,9 +75,6 @@ MainWindow::MainWindow(QWidget *parent)
         gameStage->nextWave();
     });
 
-    connect(gameStage->getGemArea(), &GemAreaWidget::comboResolved,
-            gameStage, &GameStageWidget::handleComboResolved);
-
 }
 
 void MainWindow::switchToPrepareStage() {

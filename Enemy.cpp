@@ -19,35 +19,6 @@ QWidget* Enemy::createEnemyWidget(QWidget *parent) {
     vLayout->setSpacing(5);
     vLayout->setContentsMargins(0, 0, 0, 0);
 
-/*
-    // CD
-    cdLabel = new QLabel(QString("CD: %1").arg(cd), enemyWidget);
-    cdLabel->setAlignment(Qt::AlignCenter);
-    vLayout->addWidget(cdLabel);
-
-    // icon
-    QLabel *icon = new QLabel(enemyWidget);
-    icon->setFixedSize(180, 240);
-    icon->setPixmap(QPixmap(iconPath).scaled(180, 180));
-    icon->setAlignment(Qt::AlignCenter);
-    vLayout->addWidget(icon);
-
-    // HP bar
-    hpBar = new QProgressBar(enemyWidget);
-    hpBar->setRange(0, maxHp);
-    hpBar->setValue(currentHp);
-    hpBar->setFixedWidth(180);
-
-    QString color;
-    if (attr == "Water") color = "blue";
-    else if (attr == "Fire") color = "red";
-    else if (attr == "Earth") color = "green";
-    else if (attr == "Light") color = "yellow";
-    else if (attr == "Dark") color = "purple";
-    hpBar->setStyleSheet(QString("QProgressBar::chunk { background-color: %1; }").arg(color));
-
-    vLayout->addWidget(hpBar);
-*/
     // 圖片區域包裝（包含 CD 與 HP）
     QWidget* iconWrapper = new QWidget(enemyWidget);
     iconWrapper->setFixedSize(180, 210);  // 180 + 30
@@ -156,7 +127,7 @@ void Enemy::applySkill_ID5(GemAreaWidget* gemArea)
 void Enemy::onEnterWave(GemAreaWidget* gemArea)
 {
     if (id == 5) {
-        applySkill_ID5(gemArea);  // ← 入場觸發
+        applySkill_ID5(gemArea);  // 入場觸發
     }
 }
 

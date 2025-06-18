@@ -1,0 +1,26 @@
+Author: 洪漢霖
+Date: 2025.06.19
+僅供個人與學術用途使用
+
+# 編譯步驟
+本專案使用 Qt 5.12.12 與 MinGW 7.3.0 進行開發與編譯，請依照以下步驟進行建構與執行：
+
+## 步驟 1：開啟 Qt 命令提示字元
+📌「開始選單」> Qt 5.12.12 for Desktop (MinGW 7.3.0 32-bit)
+→ 點選 Qt 5.12.12 (MinGW 7.3.0 32-bit) Command Prompt
+
+## 步驟 2：切換到專案目錄 (Qt 5.12.12 (MinGW 7.3.0 32-bit) Command Prompt)
+E:
+cd \QTproj\TOS2
+
+## 步驟 3：產生 Makefile（Qt 5.12.12 (MinGW 7.3.0 32-bit) Command Prompt）
+qmake TOS2.pro
+
+## 步驟 4：使用 MinGW 進行編譯 (Qt 5.12.12 (MinGW 7.3.0 32-bit) Command Prompt)
+mingw32-make
+
+## 步驟 5：自動部署 Qt 相依 DLL(Qt 5.12.12 (MinGW 7.3.0 32-bit) Command Prompt)
+cd release
+windeployqt TOS2.exe
+
+## portable version should pack "release" directory

@@ -30,6 +30,7 @@ public:
 public slots:
     // void handleComboResolved(int combo, QMap<QString, int> ncarMap);
     void showComboStepAnimation(int combo);
+    void resetStage();
 
 signals:
     void pauseGame();

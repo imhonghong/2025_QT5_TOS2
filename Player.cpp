@@ -22,6 +22,12 @@ void Player::reset()
     updateHpBar();
     stopMoveTimer();
     showAsHp();
+    if (hpTextLabel) {
+            hpTextLabel->setText(QString("HP: %1 / %2").arg(currentHp).arg(maxHp));
+        }
+    if (hpBar) {
+        hpBar->setValue(currentHp);
+    }
 }
 
 void Player::bindHpBar(QProgressBar* bar, QLabel* label)

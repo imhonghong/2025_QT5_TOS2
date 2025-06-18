@@ -52,6 +52,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     // ✅ finish → restart
     connect(finishStage, &FinishStageWidget::restartGame, this, [=]() {
+        gameStage->resetStage(); // ✅ 改為呼叫這個
+        qDebug() << "call reset from MainWindow ->gameStage";
         switchToPrepareStage();
     });
 

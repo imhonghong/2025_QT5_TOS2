@@ -21,7 +21,6 @@ public:
     void setPlayer(Player* p);
     void randomSetWeathered(int count);
 
-    QMap<QString, int> getNcarMap() const;
     Gem* getGem(int row, int col) const { return gemGrid[row][col]; };
     QVector<QPoint> getPassedCells() const { return passedCells; };
     QVector<Enemy*> getEnemies() const { return enemies; }

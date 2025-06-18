@@ -152,18 +152,49 @@ GameStageWidget::GameStageWidget(QWidget *parent)
 
 }
 
-void GameStageWidget::setup(const QVector<Hero*>& heroes, int mission)
+void GameStageWidget::resetStage()
 {
-    if (mission != 1) return;
+    enemies.clear();
+    waves.clear();
 
-    // 清除舊圖示
+    // 🔁 重設 gem 區
+    if (gemArea) {
+        gemArea->resetBoard();
+    }
+
+    // 🔁 player status
+    if (player) {
+        player->reset();
+    }
+    // 🔁 hero
     QLayoutItem *child;
     while ((child = heroLayout->takeAt(0)) != nullptr) {
         delete child->widget();
         delete child;
     }
+    // 🔁
+    if (comboLabel) {
+        comboLabel->deleteLater();
+        comboLabel = nullptr;
+    }
+    if (comboOverlay) {
+        comboOverlay->deleteLater();
+        comboOverlay = nullptr;
+    }
+    if (recoveryLabel) {
+        recoveryLabel->deleteLater();
+        recoveryLabel = nullptr;
+    }
+    if (burnDamageLabel) {
+        burnDamageLabel->deleteLater();
+        burnDamageLabel = nullptr;
+    }
+}
 
-    // 顯示角色或空格框
+void GameStageWidget::setup(const QVector<Hero*>& heroes, int mission)
+{
+    if (mission != 1) return;
+
     for (Hero* h : heroes) {
         QLabel* icon = new QLabel(this);
         icon->setFixedSize(90, 90);

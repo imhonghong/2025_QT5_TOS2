@@ -51,14 +51,11 @@ void GemAreaWidget::initializeBoard()
 
 void GemAreaWidget::resetBoard()
 {
-    for (int row = 0; row < ROWS; ++row) {
-        for (int col = 0; col < COLS; ++col) {
-            if (gemGrid[row][col]) {
-                delete gemGrid[row][col];
-                gemGrid[row][col] = nullptr;
+    for (int i = 0; i < ROWS; ++i)
+            for (int j = 0; j < COLS; ++j) {
+                if (gemGrid[i][j]) gemGrid[i][j]->deleteLater();
+                gemGrid[i][j] = nullptr;
             }
-        }
-    }
     initializeBoard();
 }
 
@@ -120,7 +117,6 @@ void GemAreaWidget::mouseMoveEvent(QMouseEvent* event)
                     emit showBurnDamage();
                 }
             }
-
     }
 
     for (Enemy* e : enemies) {
@@ -164,12 +160,6 @@ void GemAreaWidget::swapGems(QPoint a, QPoint b)
     animB->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
-QMap<QString, int> GemAreaWidget::getNcarMap() const
-{
-    QMap<QString, int> map;
-    // Placeholder for future elimination logic
-    return map;
-}
 
 
 void GemAreaWidget::forceStopDragging()

@@ -30,6 +30,8 @@ public:
     void setHeroTeam(const QVector<Hero*>& team);
     const QVector<Hero*>& getHeroTeam() const;
 
+    void setBulletParent(QWidget* parent);
+
     void processEnemyTurn(const QVector<Enemy*>& enemies);
 
     void processEnemyTurnSequentially(const QVector<Enemy*>& enemies,
@@ -43,6 +45,7 @@ public:
                             const QMap<QString, QMap<QString, double>>& acTable,
                             QVector<Hero*> heroesToAttack,
                             int index); //hepler funciton of attackAllEnemies
+    void showBulletAnimation(QWidget* from, QWidget* to, QWidget* commonParent);
 
     void recoverHp(int combo, int nHeart);
 
@@ -74,6 +77,7 @@ private:
     GemAreaWidget* gemArea = nullptr;
     QPropertyAnimation* timerAnim = nullptr;
     QLabel* hpTextLabel = nullptr;
+    QWidget* bulletParent = nullptr;
 
     bool hasEmittedAttackFinished = false;
 };

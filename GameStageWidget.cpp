@@ -33,6 +33,7 @@ GameStageWidget::GameStageWidget(QWidget *parent)
     settingButton->raise();
     connect(settingButton, &QPushButton::clicked, this, &GameStageWidget::pauseGame);
 
+    /*
     // simulate button
     QWidget *simulateArea = new QWidget(this);
     simulateArea->setFixedSize(540, 30);
@@ -53,21 +54,22 @@ GameStageWidget::GameStageWidget(QWidget *parent)
     simulateLayout->addStretch();
     simulateLayout->addWidget(failButton);
     mainLayout->addWidget(simulateArea);
-
+    */
     // hero
     heroAreaWidget = new QWidget(this);
-    heroAreaWidget->setFixedSize(540, 90);
+    heroAreaWidget->setFixedSize(540, 120);
     heroAreaWidget->setStyleSheet("border: 1px solid gray;");
     heroLayout = new QHBoxLayout(heroAreaWidget);
-    heroLayout->setSpacing(10);
-    mainLayout->addWidget(heroAreaWidget, 0, Qt::AlignHCenter);
+    //heroLayout->setSpacing(10);
+    heroLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->addWidget(heroAreaWidget);
 
     QProgressBar* hpBar = new QProgressBar(this);
     hpBar->setFixedSize(530, 40);
     hpBar->setTextVisible(false);
     mainLayout->addWidget(hpBar, 0, Qt::AlignHCenter);
 
-    // 1. 新增 label，讓它浮在進度條上
+    // HP label，讓它浮在進度條上
     QLabel* hpTextLabel = new QLabel(hpBar);
     hpTextLabel->setStyleSheet("color: white; background-color: transparent;");
     QFont font;
@@ -83,6 +85,7 @@ GameStageWidget::GameStageWidget(QWidget *parent)
     player = new Player(this);
     player->bindHpBar(hpBar, hpTextLabel);
     player->reset();
+    player->setBulletParent(this);
 
     // 符石區
     gemArea = new GemAreaWidget(this);
@@ -198,11 +201,12 @@ void GameStageWidget::setup(const QVector<Hero*>& heroes, int mission)
 
     for (Hero* h : heroes) {
         QLabel* icon = new QLabel(this);
-        icon->setFixedSize(90, 90);
+        icon->setFixedSize(89, 89);
 
         if (h) {
             QPixmap pix(h->iconPath);
-            icon->setPixmap(pix.scaled(90, 90));
+            icon->setPixmap(pix.scaled(89, 89));
+            h->iconLabel = icon;
         //} else {
         // 留白但加上框線
         //icon->setStyleSheet("border: 1px solid gray;");
@@ -279,6 +283,7 @@ void GameStageWidget::showWave(int wave_idx)
 
         if (wave_idx==2) enemyLayout->addStretch(); //wave2 自動加空格
         enemyLayout->addWidget(enemyWidget, 0, Qt::AlignVCenter);
+        enemy->enemyWidget = enemyWidget;
         if (wave_idx==2) enemyLayout->addStretch();
     }
 }

@@ -205,9 +205,8 @@ void Player::processEnemyTurnSequentially(const QVector<Enemy*>& enemies, int in
 
     e->cd--;
 
-    bool willAttack = false;
     if (e->cd <= 0) {
-        willAttack = true;
+        showBulletAnimation(e->iconLabel, hpBar, bulletParent);
         takeDamage(e->atk);
         e->cd = e->originalCd;
     }
@@ -294,6 +293,10 @@ void Player::recoverHp(int combo, int nHeart)
                  << "| HP:" << before << "->" << currentHp;
 }
 
+void Player::setBulletParent(QWidget* parent) {
+    bulletParent = parent;
+}
+
 void Player::setGemArea(GemAreaWidget* g)
 {
     gemArea = g;
@@ -347,7 +350,11 @@ void Player::attackSequentially(QVector<Enemy*> enemies,
 
     Enemy* target = aliveEnemies[QRandomGenerator::global()->bounded(aliveEnemies.size())];
     double ac = acTable[attr].value(target->attr, 1.0);
-    int finalDmg = static_cast<int>(damage * ac + 0.5);
+    int finalDmg = round(damage * ac);
+
+    qDebug() << "[Hero] icon parent:" << h->iconLabel->parentWidget();
+    qDebug() << "[Enemy] icon parent:" << target->iconLabel->parentWidget();
+    showBulletAnimation(h->iconLabel, target->iconLabel, bulletParent);
     target->takeDamage(finalDmg);
 
     // 🔥 顯示動畫（依屬性上色）
@@ -386,3 +393,27 @@ void Player::attackSequentially(QVector<Enemy*> enemies,
     });
 }
 
+void Player::showBulletAnimation(QWidget* from, QWidget* to, QWidget* commonParent)
+{
+    if (!from || !to || !commonParent) return;
+
+    QLabel* bullet = new QLabel(commonParent);
+    bullet->setPixmap(QPixmap(":/bullet/data/bullet.png").scaled(40, 40, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    bullet->resize(40, 40);
+    bullet->setAttribute(Qt::WA_TransparentForMouseEvents);
+
+    QPoint start = from->mapTo(commonParent, from->rect().center()) - QPoint(20, 20);
+    QPoint end = to->mapTo(commonParent, to->rect().center()) - QPoint(20, 20);
+
+    bullet->move(start);
+    bullet->show();
+
+    QPropertyAnimation* anim = new QPropertyAnimation(bullet, "pos");
+    anim->setDuration(400);
+    anim->setStartValue(start);
+    anim->setEndValue(end);
+    anim->setEasingCurve(QEasingCurve::InOutQuad);
+    anim->start(QAbstractAnimation::DeleteWhenStopped);
+
+    connect(anim, &QPropertyAnimation::finished, bullet, &QLabel::deleteLater);
+}

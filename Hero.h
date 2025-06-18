@@ -1,6 +1,7 @@
 // Hero.h
 #pragma once
 #include <QString>
+#include <QLabel>
 
 class Hero {
 public:
@@ -12,4 +13,5 @@ public:
     int atk;
     int cd;
     QString iconPath;
+    QLabel* iconLabel = nullptr;
 };

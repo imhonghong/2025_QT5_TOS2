@@ -9,7 +9,7 @@
 
 Enemy::Enemy(int id, const QString &attr, int hp, int atk, int cd, const QString &iconPath,
              SpecialMechanism sp)
-    : Hero(id, attr, hp, atk, cd, iconPath), special(sp), maxHp(hp), currentHp(hp),
+    : Hero(id, attr, hp, atk, cd, iconPath), special(sp), currentHp(hp), maxHp(hp),
       originalCd(cd), cd(cd)
 {}
 
@@ -59,6 +59,7 @@ QWidget* Enemy::createEnemyWidget(QWidget *parent) {
     icon->setPixmap(QPixmap(iconPath).scaled(180, 180));
     icon->setAlignment(Qt::AlignHCenter);
     icon->move(0, 0);
+    this->iconLabel = icon;
 
     // CD 標籤
     cdLabel = new QLabel(QString("CD: %1").arg(cd), iconWrapper);

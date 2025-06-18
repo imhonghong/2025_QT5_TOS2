@@ -402,7 +402,7 @@ void GemAreaWidget::refillGems()
 
                 // 動畫落下
                 QPropertyAnimation* anim = new QPropertyAnimation(newGem, "pos");
-                anim->setDuration(200);
+                anim->setDuration(150);
                 anim->setStartValue(QPoint(col * GEM_SIZE, -GEM_SIZE));
                 anim->setEndValue(QPoint(col * GEM_SIZE, row * GEM_SIZE));
                 anim->setEasingCurve(QEasingCurve::OutBounce);
